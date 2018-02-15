@@ -141,7 +141,6 @@ void qHilbert(
 #endif
 
 	/// 8 at a time ( AVX 2 )
-	/*
 	for( std::size_t i = 0; i < Count / 8; ++i )
 	{
 		__m256i PositionsX = _mm256_setzero_si256();
@@ -159,7 +158,8 @@ void qHilbert(
 			// RegionsX = 1 & CurDistances / 2
 			const __m256i RegionsX = // RegionX
 				_mm256_and_si256(
-					_mm256_srli_epi32(CurDistances, 1), // / 2
+					_mm256_srli_epi32(CurDistances, 1),
+					// / 2
 					_mm256_set1_epi32(1) // & 0b1
 				);
 			// RegionsY = 1 & CurDistances ^ RegionsX
@@ -261,7 +261,6 @@ void qHilbert(
 			PositionsX,
 			PositionsY
 		);
-
 		const __m256i PermuteFirst = _mm256_permute2x128_si256(
 			InterleavedLo,
 			InterleavedHi,
@@ -284,9 +283,9 @@ void qHilbert(
 		);
 		Index += 8;
 	}
-	*/
+
 	/// 4 at a time ( SSE4.2 )
-	for( std::size_t i = 0; i < Count / 4; ++i )
+	for( std::size_t i = 0; i < (Count % 8) / 4; ++i )
 	{
 		__m128i PositionsX = _mm_setzero_si128();
 		__m128i PositionsY = _mm_setzero_si128();
@@ -394,15 +393,11 @@ void qHilbert(
 			// Levels *= 2
 			Levels = _mm_slli_epi32(Levels, 1);
 		}
-		// Write four points
-		// PositionsX = 4 X positions
-		// PositionsY = 4 Y positions
-		// Write PosX[0],PosY[0],PosX[1],PosY[1] ( 128i )
+		// Write four interleaved points
 		_mm_storeu_si128(
 			reinterpret_cast<__m128i*>(&Positions[Index]),
 			_mm_unpacklo_epi32(PositionsX, PositionsY)
 		);
-		// Write PosX[2],PosY[2],PosX[3],PosY[3] ( 128i )
 		_mm_storeu_si128(
 			reinterpret_cast<__m128i*>(&Positions[Index + 2]),
 			_mm_unpackhi_epi32(PositionsX, PositionsY)
