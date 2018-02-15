@@ -15,7 +15,11 @@
 
 // AVX2
 #include <immintrin.h>
-//#include <intrin.h>
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 
 #define TRIALCOUNT 10'000
 
@@ -126,11 +130,15 @@ void qHilbert(
 )
 {
 	std::size_t Index = 0;
-	const std::uint32_t Depth = __builtin_clz(Width)-1;
-	//_BitScanReverse64(
-	//	reinterpret_cast<unsigned long*>(&Depth),
-	//	Width
-	//);
+#ifdef _MSC_VER
+	std::uint32_t Depth;
+	_BitScanReverse(
+		reinterpret_cast<unsigned long*>(&Depth),
+		Width
+	);
+#else
+	const std::uint32_t Depth = __builtin_clz(Width) - 1;
+#endif
 
 	/// 8 at a time ( AVX 2 )
 	/*
@@ -293,20 +301,19 @@ void qHilbert(
 			const __m128i LevelBound = _mm_sub_epi32(Levels, _mm_set1_epi32(1));
 			/// Regions
 			// RegionsX = 1 & CurDistances / 2
-			const __m128i RegionsX = // RegionX
+			const __m128i RegionsX =
 				_mm_and_si128(
-					_mm_srli_epi32(CurDistances, 1), // / 2
-					_mm_set1_epi32(1) & 0b1
+					_mm_srli_epi32(CurDistances, 1),
+					_mm_set1_epi32(1)
 				);
 			// RegionsY = 1 & CurDistances ^ RegionsX
 			const __m128i RegionsY =
 				_mm_and_si128(
 					_mm_xor_si128(
-						// Distance ^ RegionX
 						CurDistances,
 						RegionsX
 					),
-					_mm_set1_epi32(1) & 0b1
+					_mm_set1_epi32(1)
 				);
 
 			const __m128i RegXOne = // bitmask, RegX[i] == 1
@@ -433,28 +440,32 @@ void WikiTest()
 	{
 		auto WikiProc =
 			[&PointsInt]()
-		{
-			for( std::size_t i = 0; i < Distances.size(); ++i )
 			{
-				d2xy(TestWidth, Distances[i], &PointsInt[i].X, &PointsInt[i].Y);
-			}
-		};
+				for( std::size_t i = 0; i < Distances.size(); ++i )
+				{
+					d2xy(TestWidth, Distances[i], &PointsInt[i].X, &PointsInt[i].Y);
+				}
+			};
 		Duration += Measure<>::Duration(WikiProc);
 	}
 	std::cout
 		<< "\e[1;33md2xy\e[1;36m\t"
 		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "\e[0mns\n"
 		<< (std::equal(
-				TargetPoints.begin(), TargetPoints.end(), PointsInt.begin(),
+				TargetPoints.begin(),
+				TargetPoints.end(),
+				PointsInt.begin(),
 				[](const Vector2<std::uint32_t>& A, const Vector2<int>& B) -> bool
-			{
-				std::printf(
-					"(%u,%u) == (%i,%i)\t",
-					A.X, A.Y,
-					B.X, B.Y
-				);
-				return A.X == B.X && A.Y == B.Y;
-			}
+				{
+					std::printf(
+						"(%u,%u) == (%i,%i)\t",
+						A.X,
+						A.Y,
+						B.X,
+						B.Y
+					);
+					return A.X == B.X && A.Y == B.Y;
+				}
 			)
 				? "\e[1;32mPASS\e[0m"
 				: "\e[1:31mFAIL\e[0m")
@@ -480,16 +491,20 @@ void qHilbertTest()
 		<< "\e[1;33mqHilbert\e[1;36m\t"
 		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "\e[0mns \n"
 		<< (std::equal(
-				TargetPoints.begin(), TargetPoints.end(), Positions.begin(),
+				TargetPoints.begin(),
+				TargetPoints.end(),
+				Positions.begin(),
 				[](const Vector2<std::uint32_t>& A, const Vector2<std::uint32_t>& B) -> bool
-			{
-				std::printf(
-					"(%u,%u) == (%u,%u)\t",
-					A.X, A.Y,
-					B.X, B.Y
-				);
-				return A.X == B.X && A.Y == B.Y;
-			}
+				{
+					std::printf(
+						"(%u,%u) == (%u,%u)\t",
+						A.X,
+						A.Y,
+						B.X,
+						B.Y
+					);
+					return A.X == B.X && A.Y == B.Y;
+				}
 			)
 				? "\e[1;32mPASS\e[0m"
 				: "\e[1:31mFAIL\e[0m")
@@ -510,6 +525,6 @@ int main()
 
 	WikiTest();
 	qHilbertTest();
-	//std::cin.ignore();
+	std::cin.ignore();
 	return EXIT_SUCCESS;
 }
