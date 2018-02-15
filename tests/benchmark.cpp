@@ -424,7 +424,7 @@ std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
 //	{7,7}, {6,6}, {0,6}, {3,3}, {0,1}, {3,4}
 //}};
 
-void WikiTest()
+std::chrono::nanoseconds WikiBench()
 {
 	/// Wikipedia
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
@@ -464,9 +464,10 @@ void WikiTest()
 				? "\nPASS"
 				: "\nFAIL")
 		<< std::endl;
+	return Duration;
 }
 
-void qHilbertTest()
+std::chrono::nanoseconds qHilbertBench()
 {
 	/// qHilbert
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
@@ -504,6 +505,7 @@ void qHilbertTest()
 				? "\nPASS"
 				: "\nFAIL")
 		<< std::endl;
+	return Duration;
 }
 
 int main()
@@ -519,8 +521,14 @@ int main()
 		);
 	}
 
-	WikiTest();
-	qHilbertTest();
+	const auto WikiTime = WikiBench();
+	const auto qHilbertTime = qHilbertBench();
+
+	std::cout
+		<< "Speedup: "
+		<< WikiTime.count() / static_cast<std::double_t>(qHilbertTime.count())
+		<< std::endl;
+
 	std::cin.ignore();
 	return EXIT_SUCCESS;
 }
