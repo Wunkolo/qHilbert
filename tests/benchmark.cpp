@@ -423,9 +423,7 @@ void qHilbert(
 }
 
 const std::size_t TestWidth = 8;
-const std::array<std::uint32_t, 5> Distances = {
-	42, 40, 20, 10, 01
-};
+std::array<std::uint32_t, TestWidth * TestWidth> Distances;
 std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
 //const std::array<Vector2<std::uint32_t>,Distances.size()> TargetPoints = {{
 //	{7,7}, {6,6}, {0,6}, {3,3}, {0,1}, {3,4}
@@ -449,8 +447,8 @@ void WikiTest()
 		Duration += Measure<>::Duration(WikiProc);
 	}
 	std::cout
-		<< "\e[1;33md2xy\e[1;36m\t"
-		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "\e[0mns\n"
+		<< "d2xy\t"
+		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "\n"
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
@@ -458,7 +456,7 @@ void WikiTest()
 				[](const Vector2<std::uint32_t>& A, const Vector2<int>& B) -> bool
 				{
 					std::printf(
-						"(%u,%u) == (%i,%i)\t",
+						"(%u,%u)==(%i,%i)\t",
 						A.X,
 						A.Y,
 						B.X,
@@ -467,8 +465,8 @@ void WikiTest()
 					return A.X == B.X && A.Y == B.Y;
 				}
 			)
-				? "\e[1;32mPASS\e[0m"
-				: "\e[1:31mFAIL\e[0m")
+				? "\nPASS"
+				: "\nFAIL")
 		<< std::endl;
 }
 
@@ -488,8 +486,8 @@ void qHilbertTest()
 		);
 	}
 	std::cout
-		<< "\e[1;33mqHilbert\e[1;36m\t"
-		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "\e[0mns \n"
+		<< "qHilbert\t"
+		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns \n"
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
@@ -497,7 +495,7 @@ void qHilbertTest()
 				[](const Vector2<std::uint32_t>& A, const Vector2<std::uint32_t>& B) -> bool
 				{
 					std::printf(
-						"(%u,%u) == (%u,%u)\t",
+						"(%u,%u)==(%u,%u)\t",
 						A.X,
 						A.Y,
 						B.X,
@@ -506,20 +504,21 @@ void qHilbertTest()
 					return A.X == B.X && A.Y == B.Y;
 				}
 			)
-				? "\e[1;32mPASS\e[0m"
-				: "\e[1:31mFAIL\e[0m")
+				? "\nPASS"
+				: "\nFAIL")
 		<< std::endl;
 }
 
 int main()
 {
+	std::iota(Distances.begin(), Distances.end(), 1);
 	for( std::size_t i = 0; i < Distances.size(); ++i )
 	{
 		d2xy(
 			TestWidth,
 			Distances[i],
-			(int*)&TargetPoints[i].X,
-			(int*)&TargetPoints[i].Y
+			reinterpret_cast<int*>(&TargetPoints[i].X),
+			reinterpret_cast<int*>(&TargetPoints[i].Y)
 		);
 	}
 
