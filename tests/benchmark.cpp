@@ -417,7 +417,7 @@ void qHilbert(
 	}
 }
 
-const std::size_t TestWidth = 16; // Must be power-of-two
+const std::size_t TestWidth = 128; // Must be power-of-two
 std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
 std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
 //const std::array<Vector2<std::uint32_t>,Distances.size()> TargetPoints = {{
@@ -451,13 +451,13 @@ void WikiTest()
 				PointsInt.begin(),
 				[](const Vector2<std::uint32_t>& A, const Vector2<int>& B) -> bool
 				{
-					std::printf(
-						"(%u,%u)==(%i,%i)\t",
-						A.X,
-						A.Y,
-						B.X,
-						B.Y
-					);
+					//std::printf(
+					//	"(%u,%u)==(%i,%i)\t",
+					//	A.X,
+					//	A.Y,
+					//	B.X,
+					//	B.Y
+					//);
 					return A.X == B.X && A.Y == B.Y;
 				}
 			)
@@ -491,13 +491,13 @@ void qHilbertTest()
 				Positions.begin(),
 				[](const Vector2<std::uint32_t>& A, const Vector2<std::uint32_t>& B) -> bool
 				{
-					std::printf(
-						"(%u,%u)==(%u,%u)\t",
-						A.X,
-						A.Y,
-						B.X,
-						B.Y
-					);
+					//std::printf(
+					//	"(%u,%u)==(%u,%u)\t",
+					//	A.X,
+					//	A.Y,
+					//	B.X,
+					//	B.Y
+					//);
 					return A.X == B.X && A.Y == B.Y;
 				}
 			)
