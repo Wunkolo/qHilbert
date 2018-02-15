@@ -423,7 +423,7 @@ void qHilbert(
 }
 
 const std::size_t TestWidth = 8;
-std::array<std::uint32_t, TestWidth * TestWidth> Distances;
+std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
 std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
 //const std::array<Vector2<std::uint32_t>,Distances.size()> TargetPoints = {{
 //	{7,7}, {6,6}, {0,6}, {3,3}, {0,1}, {3,4}
@@ -511,7 +511,7 @@ void qHilbertTest()
 
 int main()
 {
-	std::iota(Distances.begin(), Distances.end(), 1);
+	std::iota(Distances.begin(), Distances.end(), 0);
 	for( std::size_t i = 0; i < Distances.size(); ++i )
 	{
 		d2xy(
