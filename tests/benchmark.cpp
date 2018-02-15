@@ -422,7 +422,7 @@ void qHilbert(
 	}
 }
 
-const std::size_t TestWidth = 8;
+const std::size_t TestWidth = 16; // Must be power-of-two
 std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
 std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
 //const std::array<Vector2<std::uint32_t>,Distances.size()> TargetPoints = {{
@@ -448,7 +448,8 @@ void WikiTest()
 	}
 	std::cout
 		<< "d2xy\t"
-		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "\n"
+		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns" << std::endl;
+	std::cout
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
@@ -487,7 +488,8 @@ void qHilbertTest()
 	}
 	std::cout
 		<< "qHilbert\t"
-		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns \n"
+		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns" << std::endl;
+	std::cout
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
