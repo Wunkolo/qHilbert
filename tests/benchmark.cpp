@@ -140,8 +140,163 @@ void qHilbert(
 	const std::uint32_t Depth = __builtin_clz(Width) - 1;
 #endif
 
+	/// 16 at a time ( AVX 512 )
+	for( std::size_t i = 0; i < Count / 16; ++i )
+	{
+		__m512i PositionsX = _mm512_setzero_si512();
+		__m512i PositionsY = _mm512_setzero_si512();
+		// Four distances at a time
+		__m512i CurDistances = _mm512_loadu_si512(
+			reinterpret_cast<const __m512i*>(&Distances[Index])
+		);
+		__m512i Levels = _mm512_set1_epi32(1);
+		for( std::size_t j = 0; j < Depth; ++j )
+		{
+			// Constants
+			const __m512i LevelBound = _mm512_sub_epi32(Levels, _mm512_set1_epi32(1));
+			// Regions
+			// RegionsX = 1 & CurDistances / 2
+			const __m512i RegionsX = // RegionX
+				_mm512_and_si512(
+					_mm512_srli_epi32(CurDistances, 1),
+					// / 2
+					_mm512_set1_epi32(1) // & 0b1
+				);
+			// RegionsY = 1 & CurDistances ^ RegionsX
+			const __m512i RegionsY =
+				_mm512_and_si512(
+					_mm512_xor_si512(
+						// Distance ^ RegionX
+						CurDistances,
+						RegionsX
+					),
+					_mm512_set1_epi32(1) // & 0b1
+				);
+
+			const __mmask16 RegXOne = // bitmask, RegX[i] == 1
+				_mm512_cmpeq_epi32_mask(
+					RegionsX,
+					_mm512_set1_epi32(1)
+				);
+			const __mmask16 RegYZero = // bitmask, RegY[i] == 0
+				_mm512_cmpeq_epi32_mask(
+					RegionsY,
+					_mm512_setzero_si512()
+				);
+
+			// Flip, if RegY[i] == 0 && RegX[i] == 1
+			// bitmask, RegY[i] == 0 && RegX[i] == 1
+			const __mmask16 FlipMask = _mm512_kand(
+				RegXOne,
+				RegYZero
+			);
+
+			// Calculate Flipped X and Y
+			// Level - 1 - PositionX
+			// Level - 1 - PositionY
+			PositionsX = _mm512_mask_sub_epi32(
+				PositionsX,
+				FlipMask,
+				LevelBound,
+				PositionsX
+			);
+			PositionsY = _mm512_mask_sub_epi32(
+				PositionsY,
+				FlipMask,
+				LevelBound,
+				PositionsY
+			);
+
+			// Swap X and Y, where RegYZero is true
+			const __m512i SwappedX = _mm512_mask_mov_epi32(
+				PositionsX,
+				RegYZero,
+				PositionsY
+			);
+			const __m512i SwappedY = _mm512_mask_mov_epi32(
+				PositionsY,
+				RegYZero,
+				PositionsX
+			);
+			PositionsX = SwappedX;
+			PositionsY = SwappedY;
+
+			// Increment Positions
+			// PosX += Level * RegionsX
+			// PosY += Level * RegionsY
+			PositionsX = _mm512_add_epi32(
+				PositionsX,
+				_mm512_mullo_epi32(
+					Levels,
+					RegionsX
+				)
+			);
+			PositionsY = _mm512_add_epi32(
+				PositionsY,
+				_mm512_mullo_epi32(
+					Levels,
+					RegionsY
+				)
+			);
+			// CurDistance = Dist / 4
+			CurDistances = _mm512_srli_epi32(CurDistances, 2);
+			// Levels *= 2
+			Levels = _mm512_slli_epi32(Levels, 1);
+		}
+		// ((X,Y),(0,0)),((X,Y),(0,0))
+		//
+
+		// todo
+		const __m512i InterleavedLo = _mm512_unpacklo_epi32(
+			PositionsX,
+			PositionsY
+		);
+		const __m512i InterleavedHi = _mm512_unpackhi_epi32(
+			PositionsX,
+			PositionsY
+		);
+		const __m512i PermuteFirst = _mm512_permutex2var_epi64(
+			InterleavedLo,
+			_mm512_set_epi64(
+				0b1011,// Hi[3]
+				0b1010,// Hi[2]
+				0b0011,// Lo[3]
+				0b0010,// Lo[2]
+				0b1001,// Hi[1]
+				0b1000,// Hi[0]
+				0b0001,// Lo[1]
+				0b0000 // Lo[0]
+			),
+			InterleavedHi
+		);
+		const __m512i PermuteSecond = _mm512_permutex2var_epi64(
+			InterleavedLo,
+			_mm512_set_epi64(
+				0b1111,// Hi[7]
+				0b1110,// Hi[6]
+				0b0111,// Lo[7]
+				0b0110,// Lo[6]
+				0b1101,// Hi[5]
+				0b1100,// Hi[4]
+				0b0101,// Lo[5]
+				0b0100 // Lo[4]
+			),
+			InterleavedHi
+		);
+		// store first eight ((x,y),(x,y),(x,y),(x,y),(x,y),(x,y),(x,y),(x,y)
+		_mm512_storeu_si512(
+			reinterpret_cast<__m512i*>(&Positions[Index]),
+			PermuteFirst
+		);
+		// store second eight ((x,y),(x,y),(x,y),(x,y),(x,y),(x,y),(x,y),(x,y)
+		_mm512_storeu_si512(
+			reinterpret_cast<__m512i*>(&Positions[Index + 8]),
+			PermuteSecond
+		);
+		Index += 16;
+	}
 	/// 8 at a time ( AVX 2 )
-	for( std::size_t i = 0; i < Count / 8; ++i )
+	for( std::size_t i = 0; i < (Count % 16) / 8; ++i )
 	{
 		__m256i PositionsX = _mm256_setzero_si256();
 		__m256i PositionsY = _mm256_setzero_si256();
@@ -271,12 +426,12 @@ void qHilbert(
 			InterleavedHi,
 			0b0011'0001
 		);
-		// store first four ((xy,xy),(xy,xy))
+		// store first four ((x,y),(x,y),(x,y),(x,y))
 		_mm256_storeu_si256(
 			reinterpret_cast<__m256i*>(&Positions[Index]),
 			PermuteFirst
 		);
-		// store secnd four ((xy,xy),(xy,xy))
+		// store second four ((x,y),(x,y),(x,y),(x,y))
 		_mm256_storeu_si256(
 			reinterpret_cast<__m256i*>(&Positions[Index + 4]),
 			PermuteSecond
@@ -393,11 +548,12 @@ void qHilbert(
 			// Levels *= 2
 			Levels = _mm_slli_epi32(Levels, 1);
 		}
-		// Write four interleaved points
+		// store first two ((xy,xy),(xy,xy))
 		_mm_storeu_si128(
 			reinterpret_cast<__m128i*>(&Positions[Index]),
 			_mm_unpacklo_epi32(PositionsX, PositionsY)
 		);
+		// store second two ((xy,xy),(xy,xy))
 		_mm_storeu_si128(
 			reinterpret_cast<__m128i*>(&Positions[Index + 2]),
 			_mm_unpackhi_epi32(PositionsX, PositionsY)
