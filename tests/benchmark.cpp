@@ -140,6 +140,8 @@ void qHilbert(
 	const std::uint32_t Depth = __builtin_clz(Width) - 1;
 #endif
 
+#ifdef __AVX512F__
+#pragma message "AVX512F Enabled"
 	/// 16 at a time ( AVX 512 )
 	for( std::size_t i = 0; i < Count / 16; ++i )
 	{
@@ -295,6 +297,10 @@ void qHilbert(
 		);
 		Index += 16;
 	}
+#endif
+
+#ifdef __AVX2__
+#pragma message "AVX2 Enabled"
 	/// 8 at a time ( AVX 2 )
 	for( std::size_t i = 0; i < (Count % 16) / 8; ++i )
 	{
@@ -438,7 +444,10 @@ void qHilbert(
 		);
 		Index += 8;
 	}
+#endif
 
+#ifdef __SSE4_2__
+#pragma message "SSE4.2 Enabled"
 	/// 4 at a time ( SSE4.2 )
 	for( std::size_t i = 0; i < (Count % 8) / 4; ++i )
 	{
@@ -560,7 +569,7 @@ void qHilbert(
 		);
 		Index += 4;
 	}
-	///
+#endif
 
 	// Unaligned residue
 	for( ; Index < Count; ++Index )
@@ -685,6 +694,5 @@ int main()
 		<< WikiTime.count() / static_cast<std::double_t>(qHilbertTime.count())
 		<< std::endl;
 
-	std::cin.ignore();
 	return EXIT_SUCCESS;
 }

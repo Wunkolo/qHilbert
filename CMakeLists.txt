@@ -15,9 +15,7 @@ if( MSVC )
 	add_compile_options( /arch:AVX2 )
 	add_compile_options( /W3 )
 elseif( CMAKE_COMPILER_IS_GNUCXX )
-	add_compile_options( -m64 )
-	add_compile_options( -march=native )
-	add_compile_options( -Ofast )
+	add_compile_options( -O2 )
 	add_compile_options( -Wall )
 	add_compile_options( -Wextra )
 endif()
@@ -25,18 +23,107 @@ endif()
 ### Tests
 enable_testing()
 
-# Benchmark
-add_executable(
-	Benchmark
-	tests/benchmark.cpp
-)
-target_include_directories(
-	Benchmark
-	PRIVATE
-	include
-)
+# Benchmarks
 
-add_test(
-	NAME Benchmark
-	COMMAND Benchmark
-)
+if( CMAKE_COMPILER_IS_GNUCXX )
+	set(
+		Benches
+		avx512f
+		avx2
+		sse4.2
+	)
+	
+	# Individual extensions
+	foreach( Bench ${Benches})
+		add_executable(
+			Benchmark-${Bench}
+			tests/benchmark.cpp
+		)
+		target_include_directories(
+			Benchmark-${Bench}
+			PRIVATE
+			include
+		)
+		target_compile_options(
+			Benchmark-${Bench}
+			PRIVATE
+			-m${Bench}
+		)
+		add_test(
+			NAME Benchmark-${Bench}
+			COMMAND Benchmark-${Bench}
+		)
+	endforeach( Bench )
+	
+	# All Extensions
+	add_executable(
+		Benchmark-all
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark-all
+		PRIVATE
+		include
+	)
+	foreach( Bench ${Benches})
+		target_compile_definitions(
+			Benchmark-all
+			PRIVATE
+			BENCH${Bench}
+		)
+		target_compile_options(
+			Benchmark-all
+			PRIVATE
+			-m${Bench}
+		)
+	endforeach( Bench )
+	
+	add_test(
+		NAME Benchmark-all
+		COMMAND Benchmark-all
+	)
+	
+	# Native
+	add_executable(
+		Benchmark-native
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark-native
+		PRIVATE
+		include
+	)
+		target_compile_options(
+			Benchmark-native
+			PRIVATE
+			-march=native
+		)
+	add_test(
+		NAME Benchmark-native
+		COMMAND Benchmark-native
+	)
+	
+else()
+	# Default target
+	add_executable(
+		Benchmark
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark
+		PRIVATE
+		include
+	)
+	
+	target_compile_definitions(
+		Benchmark-ALL
+		PRIVATE
+		__AVX512F__
+		__AVX2__
+		__SSE4_2__
+	)
+	add_test(
+		NAME Benchmark
+		COMMAND Benchmark
+	)
+endif()
