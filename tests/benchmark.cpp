@@ -79,7 +79,7 @@ void d2xy(int n, int d, int* x, int* y)
 
 
 
-const std::size_t TestWidth = 128; // Must be power-of-two
+const std::size_t TestWidth = 64; // Must be power-of-two
 std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
 std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
 
