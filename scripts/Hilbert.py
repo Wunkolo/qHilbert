@@ -1,5 +1,7 @@
 from PIL import Image
 from PIL import ImageDraw
+import random
+from itertools import tee
 
 def qHilbertSOA(Width, Distances):
 	Level = 1
@@ -29,6 +31,9 @@ def qHilbertSOA(Width, Distances):
 		Level *= 2
 	return list(zip(PositionsX,PositionsY))
 
+def groups(iterable,n):
+	return zip(*[iter(iterable)]*n)
+
 # Config
 # Name: Name of generated frames. Default "Hilbert"
 # Path: Path for output images Default: "."
@@ -47,17 +52,21 @@ def GenHilbertFrames(Params):
 	img = Image.new('RGB',(Width*Spacing,Width*Spacing))
 	Points = qHilbertSOA(Width,list(range(0,Width**2)))
 	draw = ImageDraw.Draw(img)
-	PointCount = Width ** 2
-	for i,Line in enumerate(zip(*[Points[Off:] for Off in range(Quantum + 1)])):
-		# list( zip(*[a[Off:] for Off in range(0,Quantum + 1)]) )
-		Scaled = ( (Line[0][0] * Spacing, 
-					Line[0][1] * Spacing),
-				   (Line[1][0] * Spacing,
-					Line[1][1] * Spacing))
+	PointCount = (Width ** 2) // (Quantum + 1)
+	# Iterate n-wise groups of points to draw lines between them all
+	# this is a moving window! fix!
+	# should have 1 element of overlap?
+	for i,Edges in enumerate(groups(Points,Quantum+1)):#enumerate(zip(*[ Points[Off:] for Off in range(Quantum + 1) ])):
+		ScaledPoints = [ (Point[0] * Spacing, Point[1] * Spacing) for Point in Edges ]
 		draw.line(
-			Scaled,
-			fill=i
+			ScaledPoints,
+			fill = ( i, abs((i & 0xFF) - 0x7F), 0xFF - (i & 0xFF) )
 		)
+		draw.point(
+			ScaledPoints,
+			fill = ( 0xFF, 0x00, 0x00 )
+		)
+
 		print(
 			"%6d/%6d %02.02f%%\r" % (i,PointCount,100*(i/PointCount)),
 			end=''
@@ -67,9 +76,14 @@ def GenHilbertFrames(Params):
 		img.resize(
 			(img.width * Scale,img.height * Scale),
 			Image.NEAREST
-		).save(Path + "Hilbert" + str(i).zfill(6) + ".png")
+		).save(Path + Name + str(i).zfill(6) + ".png")
 	del draw
 
-GenHilbertFrames({})
+GenHilbertFrames(
+	{
+		"Quantum": 2,
+		"Scale": 6
+	}
+)
 
 #ffmpeg -f image2 -framerate 50 -i Hilbert%6d.png Hilbert.gif -t 4
