@@ -26,12 +26,19 @@ enable_testing()
 # Benchmarks
 
 if( CMAKE_COMPILER_IS_GNUCXX )
-	set(
-		Benches
-		avx512f
-		avx2
-		sse4.2
-	)
+	message( STATUS  ${CMAKE_SYSTEM_PROCESSOR})
+	if( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86" )
+		set(
+			Benches
+			avx512f
+			avx2
+			sse4.2
+		)
+	else( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" )
+		set(
+			Benches		
+		)
+	endif()
 	
 	# Individual extensions
 	foreach( Bench ${Benches})
