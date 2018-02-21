@@ -103,6 +103,20 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 		COMMAND Benchmark-native
 	)
 	
+	# Base
+	add_executable(
+		Benchmark-base
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark-base
+		PRIVATE
+		include
+	)
+	add_test(
+		NAME Benchmark-base
+		COMMAND Benchmark-base
+	)
 else()
 	# Default target
 	add_executable(
