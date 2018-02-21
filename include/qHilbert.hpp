@@ -1,6 +1,5 @@
 #pragma once
 
-// AVX2
 #include <immintrin.h>
 
 #ifdef _MSC_VER
@@ -168,10 +167,6 @@ void qHilbert(
 			// Levels *= 2
 			Levels = _mm512_slli_epi32(Levels, 1);
 		}
-		// ((X,Y),(0,0)),((X,Y),(0,0))
-		//
-
-		// todo
 		const __m512i InterleavedLo = _mm512_unpacklo_epi32(
 			PositionsX,
 			PositionsY
@@ -240,21 +235,19 @@ void qHilbert(
 			const __m256i LevelBound = _mm256_sub_epi32(Levels, _mm256_set1_epi32(1));
 			// Regions
 			// RegionsX = 1 & CurDistances / 2
-			const __m256i RegionsX = // RegionX
+			const __m256i RegionsX =
 				_mm256_and_si256(
 					_mm256_srli_epi32(CurDistances, 1),
-					// / 2
-					_mm256_set1_epi32(1) // & 0b1
+					_mm256_set1_epi32(1)
 				);
 			// RegionsY = 1 & CurDistances ^ RegionsX
 			const __m256i RegionsY =
 				_mm256_and_si256(
 					_mm256_xor_si256(
-						// Distance ^ RegionX
 						CurDistances,
 						RegionsX
 					),
-					_mm256_set1_epi32(1) // & 0b1
+					_mm256_set1_epi32(1)
 				);
 
 			const __m256i RegXOne = // bitmask, RegX[i] == 1
@@ -335,8 +328,6 @@ void qHilbert(
 			// Levels *= 2
 			Levels = _mm256_slli_epi32(Levels, 1);
 		}
-		// ((X,Y),(0,0)),((X,Y),(0,0))
-		// 
 		const __m256i InterleavedLo = _mm256_unpacklo_epi32(
 			PositionsX,
 			PositionsY
@@ -494,7 +485,7 @@ void qHilbert(
 	}
 #endif
 
-	// Unaligned residue
+	// Unaligned
 	for( ; Index < Count; ++Index )
 	{
 		qHilbertSerial(
