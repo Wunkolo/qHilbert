@@ -37,7 +37,7 @@ inline void qHilbertSerial(
 			//Swap x and y
 			std::swap(Position.X, Position.Y);
 		}
-		// "Move" the XY ahead
+		// "Move" the XY ahead where needed
 		Position.X += Level * RegionX;
 		Position.Y += Level * RegionY;
 		CurDistance /= 4;
@@ -65,7 +65,7 @@ void qHilbert(
 #ifdef __AVX512F__
 #pragma message "AVX512F Enabled"
 	/// 16 at a time ( AVX 512 )
-	for( std::size_t i = 0; i < Count / 16; ++i )
+	for( std::size_t i = Index; i < Count / 16; ++i )
 	{
 		__m512i PositionsX = _mm512_setzero_si512();
 		__m512i PositionsY = _mm512_setzero_si512();
@@ -100,6 +100,11 @@ void qHilbert(
 			const __mmask16 RegXOne = // bitmask, RegX[i] == 1
 				_mm512_cmpeq_epi32_mask(
 					RegionsX,
+					_mm512_set1_epi32(1)
+				);
+			const __mmask16 RegYOne = // bitmask, RegY[i] == 1
+				_mm512_cmpeq_epi32_mask(
+					RegionsY,
 					_mm512_set1_epi32(1)
 				);
 			const __mmask16 RegYZero = // bitmask, RegY[i] == 0
@@ -146,22 +151,10 @@ void qHilbert(
 			PositionsY = SwappedY;
 
 			// Increment Positions
-			// PosX += Level * RegionsX
-			// PosY += Level * RegionsY
-			PositionsX = _mm512_add_epi32(
-				PositionsX,
-				_mm512_mullo_epi32(
-					Levels,
-					RegionsX
-				)
-			);
-			PositionsY = _mm512_add_epi32(
-				PositionsY,
-				_mm512_mullo_epi32(
-					Levels,
-					RegionsY
-				)
-			);
+			// PosX += RegionsX ? Level : 0
+			// PosY += RegionsY ? Level : 0
+			PositionsX = _mm512_mask_add_epi32(PositionsX,RegXOne,PositionsX,Levels),
+			PositionsY = _mm512_mask_add_epi32(PositionsY,RegYOne,PositionsY,Levels),
 			// CurDistance = Dist / 4
 			CurDistances = _mm512_srli_epi32(CurDistances, 2);
 			// Levels *= 2
@@ -220,7 +213,7 @@ void qHilbert(
 #ifdef __AVX2__
 #pragma message "AVX2 Enabled"
 	/// 8 at a time ( AVX 2 )
-	for( std::size_t i = 0; i < (Count % 16) / 8; ++i )
+	for( std::size_t i = Index; i < (Count % 16) / 8; ++i )
 	{
 		__m256i PositionsX = _mm256_setzero_si256();
 		__m256i PositionsY = _mm256_setzero_si256();
@@ -253,6 +246,11 @@ void qHilbert(
 			const __m256i RegXOne = // bitmask, RegX[i] == 1
 				_mm256_cmpeq_epi32(
 					RegionsX,
+					_mm256_set1_epi32(1)
+				);
+			const __m256i RegYOne = // bitmask, RegY[i] == 1
+				_mm256_cmpeq_epi32(
+					RegionsY,
 					_mm256_set1_epi32(1)
 				);
 			const __m256i RegYZero = // bitmask, RegY[i] == 0
@@ -307,21 +305,17 @@ void qHilbert(
 			PositionsY = SwappedY;
 
 			// Increment Positions
-			// PosX += Level * RegionsX
-			// PosY += Level * RegionsY
-			PositionsX = _mm256_add_epi32(
+			// PosX += RegionsX ? Level : 0
+			// PosY += RegionsY ? Level : 0
+			PositionsX = _mm256_blendv_epi8(
 				PositionsX,
-				_mm256_mullo_epi32(
-					Levels,
-					RegionsX
-				)
+				_mm256_add_epi32(PositionsX,Levels),
+				RegXOne
 			);
-			PositionsY = _mm256_add_epi32(
+			PositionsY = _mm256_blendv_epi8(
 				PositionsY,
-				_mm256_mullo_epi32(
-					Levels,
-					RegionsY
-				)
+				_mm256_add_epi32(PositionsY,Levels),
+				RegYOne
 			);
 			// CurDistance = Dist / 4
 			CurDistances = _mm256_srli_epi32(CurDistances, 2);
@@ -363,7 +357,7 @@ void qHilbert(
 #ifdef __SSE4_2__
 #pragma message "SSE4.2 Enabled"
 	/// 4 at a time ( SSE4.2 )
-	for( std::size_t i = 0; i < (Count % 8) / 4; ++i )
+	for( std::size_t i = Index; i < (Count % 8) / 4; ++i )
 	{
 		__m128i PositionsX = _mm_setzero_si128();
 		__m128i PositionsY = _mm_setzero_si128();
@@ -396,6 +390,11 @@ void qHilbert(
 			const __m128i RegXOne = // bitmask, RegX[i] == 1
 				_mm_cmpeq_epi32(
 					RegionsX,
+					_mm_set1_epi32(1)
+				);
+			const __m128i RegYOne = // bitmask, RegY[i] == 1
+				_mm_cmpeq_epi32(
+					RegionsY,
 					_mm_set1_epi32(1)
 				);
 			const __m128i RegYZero = // bitmask, RegY[i] == 0
@@ -450,21 +449,17 @@ void qHilbert(
 			PositionsY = SwappedY;
 
 			// Increment Positions
-			// PosX += Level * RegionsX
-			// PosY += Level * RegionsY
-			PositionsX = _mm_add_epi32(
+			// PosX += RegionsX ? Level : 0
+			// PosY += RegionsY ? Level : 0
+			PositionsX = _mm_blendv_epi8(
 				PositionsX,
-				_mm_mullo_epi32(
-					Levels,
-					RegionsX
-				)
+				_mm_add_epi32(PositionsX,Levels),
+				RegXOne
 			);
-			PositionsY = _mm_add_epi32(
+			PositionsY = _mm_blendv_epi8(
 				PositionsY,
-				_mm_mullo_epi32(
-					Levels,
-					RegionsY
-				)
+				_mm_add_epi32(PositionsY,Levels),
+				RegYOne
 			);
 			// CurDistance = Dist / 4
 			CurDistances = _mm_srli_epi32(CurDistances, 2);
@@ -486,12 +481,13 @@ void qHilbert(
 #endif
 
 	// Unaligned
-	for( ; Index < Count; ++Index )
+	for( std::size_t i = Index ; i < Count; ++i )
 	{
 		qHilbertSerial(
 			Width,
-			Distances[Index],
-			Positions[Index]
+			Distances[i],
+			Positions[i]
 		);
+		Index += 1;
 	}
 }
