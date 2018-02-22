@@ -498,40 +498,40 @@ void qHilbert(
 		uint32x4_t CurDistances = vld1q_u32(
 			reinterpret_cast<const std::uint32_t*>(&Distances[Index])
 		);
-		uint32x4_t Levels = vmovq_n_u32(1);
+		uint32x4_t Levels = vdupq_n_u32(1);
 		for( std::size_t j = 0; j < Depth; ++j )
 		{
 			const uint32x4_t LevelBound = vsubq_u32( Levels, vmovq_n_u32(1) );
 			const uint32x4_t RegionsX = vandq_u32(
 				vshrq_n_u32( CurDistances, 1 ),
-				vmovq_n_u32(1)
+				vdupq_n_u32(1)
 			);
 			const uint32x4_t RegionsY = vandq_u32(
 				veorq_u32(CurDistances,RegionsX),
-				vmovq_n_u32(1)
+				vdupq_n_u32(1)
 			);
 
 			const uint32x4_t RegXOne = 
 				vceqq_u32(
 					RegionsX,
-					vmovq_n_u32(1)
+					vdupq_n_u32(1)
 				);
 			const uint32x4_t RegYOne = 
 				vceqq_u32(
 					RegionsY,
-					vmovq_n_u32(1)
+					vdupq_n_u32(1)
 				);
 			const uint32x4_t RegYZero = 
 				vceqq_u32(
 					RegionsY,
-					vmovq_n_u32(0)
+					vdupq_n_u32(0)
 				);
 
 			// Flip, if RegX[i] == 1 and RegY[i] == 0
 			const uint32x4_t FlipMask = vandq_u32( RegXOne, RegYZero );
 			const uint32x4_t FlippedX = vsubq_u32( LevelBound, PositionsX );
 			const uint32x4_t FlippedY = vsubq_u32( LevelBound, PositionsY );
-			PositionsX = vbslq_u32( FlipMask, FlippedX, PositionsX);
+			PositionsX = vbslq_u32( FlipMask, FlippedX, PositionsX );
 			PositionsY = vbslq_u32( FlipMask, FlippedY, PositionsY );
 
 			// Swap if RegY[i] == 0
@@ -566,7 +566,7 @@ void qHilbert(
 			Levels = vshlq_n_u32( Levels, 1);
 		}
 		// Interleaved
-		uint32x4x2_t Interleaved = vzipq_u32( PositionsX, PositionsY );
+		const uint32x4x2_t Interleaved = vzipq_u32( PositionsX, PositionsY );
 		// store interleaved (x,y) pairs
 		vst1q_u32(
 			reinterpret_cast<uint32_t*>(&Positions[Index]),
