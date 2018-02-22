@@ -1,11 +1,16 @@
 #pragma once
 
 #if defined(__x86_64__) || defined(_M_X64_)
-#include <immintrin.h>
-#endif
 
+#include <immintrin.h>
 #ifdef _MSC_VER
 #include <intrin.h>
+#endif
+
+#elif defined(__ARM_NEON)
+
+#include <arm_neon.h>
+#else
 #endif
 
 template< typename T >
@@ -481,7 +486,99 @@ void qHilbert(
 		Index += 4;
 	}
 #endif
+/// ARM ( NEON )
 
+#ifdef __ARM_NEON
+#pragma message "NEON Enabled"
+	/// 4 at a time ( NEON )
+	for( std::size_t i = Index; i < Count / 4; ++i )
+	{
+		uint32x4_t PositionsX = {0};
+		uint32x4_t PositionsY = {0};
+		uint32x4_t CurDistances = vld1q_u32(
+			reinterpret_cast<const std::uint32_t*>(&Distances[Index])
+		);
+		uint32x4_t Levels = vmovq_n_u32(1);
+		for( std::size_t j = 0; j < Depth; ++j )
+		{
+			const uint32x4_t LevelBound = vsubq_u32( Levels, vmovq_n_u32(1) );
+			const uint32x4_t RegionsX = vandq_u32(
+				vshrq_n_u32( CurDistances, 1 ),
+				vmovq_n_u32(1)
+			);
+			const uint32x4_t RegionsY = vandq_u32(
+				veorq_u32(CurDistances,RegionsX),
+				vmovq_n_u32(1)
+			);
+
+			const uint32x4_t RegXOne = 
+				vceqq_u32(
+					RegionsX,
+					vmovq_n_u32(1)
+				);
+			const uint32x4_t RegYOne = 
+				vceqq_u32(
+					RegionsY,
+					vmovq_n_u32(1)
+				);
+			const uint32x4_t RegYZero = 
+				vceqq_u32(
+					RegionsY,
+					vmovq_n_u32(0)
+				);
+
+			// Flip, if RegX[i] == 1 and RegY[i] == 0
+			const uint32x4_t FlipMask = vandq_u32( RegXOne, RegYZero );
+			const uint32x4_t FlippedX = vsubq_u32( LevelBound, PositionsX );
+			const uint32x4_t FlippedY = vsubq_u32( LevelBound, PositionsY );
+			PositionsX = vbslq_u32( FlipMask, FlippedX, PositionsX);
+			PositionsY = vbslq_u32( FlipMask, FlippedY, PositionsY );
+
+			// Swap if RegY[i] == 0
+			const uint32x4_t SwappedX = vbslq_u32(
+				RegYZero,
+				PositionsY,
+				PositionsX
+			);
+			const uint32x4_t SwappedY = vbslq_u32(
+				RegYZero,
+				PositionsX,
+				PositionsY
+			);
+			PositionsX = SwappedX;
+			PositionsY = SwappedY;
+
+			// Integrate Positions
+			PositionsX = vbslq_u32(
+				RegXOne,
+				vaddq_u32(PositionsX,Levels),
+				PositionsX
+			);
+			PositionsY = vbslq_u32(
+				RegYOne,
+				vaddq_u32(PositionsY,Levels),
+				PositionsY
+			);
+
+			// CurDistance /= 4
+			CurDistances = vshrq_n_u32( CurDistances, 2 );
+			// Levels *= 2
+			Levels = vshlq_n_u32( Levels, 1);
+		}
+		// Interleaved
+		uint32x4x2_t Interleaved = vzipq_u32( PositionsX, PositionsY );
+		// store interleaved (x,y) pairs
+		vst1q_u32(
+			reinterpret_cast<uint32_t*>(&Positions[Index]),
+			Interleaved.val[0]
+		);
+		vst1q_u32(
+			reinterpret_cast<uint32_t*>(&Positions[Index + 2]),
+			Interleaved.val[1]
+		);
+		Index += 4;
+	}
+#endif
 	// Unaligned
 	for( std::size_t i = Index ; i < Count; ++i )
 	{
