@@ -112,7 +112,6 @@ GenHilbertFrames(
 		"Path": "Serial",
 		"Quantum": 1,
 		"Scale": 6,
-		"Width": 16
 	}
 )
 
