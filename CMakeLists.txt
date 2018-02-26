@@ -12,7 +12,7 @@ set( CMAKE_VERBOSE_MAKEFILE ON )
 
 ### Optimizations
 if( MSVC )
-	add_compile_options( /W3 )
+	add_compile_options( /W4 )
 elseif( CMAKE_COMPILER_IS_GNUCXX )
 	add_compile_options( -O2 )
 	add_compile_options( -Wall )
@@ -34,7 +34,7 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 		)
 	else( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" )
 		set(
-			Benches		
+			Benches
 		)
 	endif()
 	
@@ -70,7 +70,7 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 		PRIVATE
 		include
 	)
-	foreach( Bench ${Benches})
+	foreach( Bench ${Benches} )
 		target_compile_definitions(
 			Benchmark-all
 			PRIVATE
@@ -98,11 +98,11 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 		PRIVATE
 		include
 	)
-		target_compile_options(
-			Benchmark-native
-			PRIVATE
-			-march=native
-		)
+	target_compile_options(
+		Benchmark-native
+		PRIVATE
+		-march=native
+	)
 	add_test(
 		NAME Benchmark-native
 		COMMAND Benchmark-native
