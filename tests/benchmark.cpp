@@ -20,24 +20,18 @@
 template< typename TimeT = std::chrono::nanoseconds >
 struct Measure
 {
-	template< typename F, typename ...Args >
-	static typename TimeT::rep Execute(F&& func, Args&&... args)
+	template< typename FunctionT, typename ...ArgsT >
+	static TimeT Duration(FunctionT&& Func, ArgsT&&... Arguments)
 	{
-		auto start = std::chrono::high_resolution_clock::now();
-		std::forward<decltype(func)>(func)(std::forward<Args>(args)...);
-		auto duration = std::chrono::duration_cast<TimeT>(
-			std::chrono::high_resolution_clock::now() - start
-		);
-		return duration.count();
-	}
+		// Start time
+		const auto Start = std::chrono::high_resolution_clock::now();
+		
+		// Run function, perfect-forward arguments
+		std::forward<decltype(Func)>(Func)(std::forward<ArgsT>(Arguments)...);
 
-	template< typename F, typename ...Args >
-	static TimeT Duration(F&& func, Args&&... args)
-	{
-		auto start = std::chrono::high_resolution_clock::now();
-		std::forward<decltype(func)>(func)(std::forward<Args>(args)...);
+		// Return executation time.
 		return std::chrono::duration_cast<TimeT>(
-			std::chrono::high_resolution_clock::now() - start
+			std::chrono::high_resolution_clock::now() - Start
 		);
 	}
 };
@@ -53,7 +47,6 @@ void rot(int n, int* x, int* y, int rx, int ry)
 			*x = n - 1 - *x;
 			*y = n - 1 - *y;
 		}
-
 		//Swap x and y
 		int t = *x;
 		*x = *y;
@@ -78,10 +71,15 @@ void d2xy(int n, int d, int* x, int* y)
 }
 
 
-
 const std::size_t TestWidth = 64; // Must be power-of-two
 std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
 std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
+
+template< typename Type1, typename Type2 >
+bool Vector2Equal(const Vector2<Type1>& A, const Vector2<Type2>& B)
+{
+	return A.X == B.X && A.Y == B.Y;
+}
 
 std::chrono::nanoseconds WikiBench()
 {
@@ -108,20 +106,10 @@ std::chrono::nanoseconds WikiBench()
 				TargetPoints.begin(),
 				TargetPoints.end(),
 				PointsInt.begin(),
-				[](const Vector2<std::uint32_t>& A, const Vector2<int>& B) -> bool
-				{
-					//std::printf(
-					//	"(%u,%u)==(%i,%i)\t",
-					//	A.X,
-					//	A.Y,
-					//	B.X,
-					//	B.Y
-					//);
-					return A.X == B.X && A.Y == B.Y;
-				}
+				Vector2Equal<std::uint32_t, int>
 			)
-				? "\nPASS"
-				: "\nFAIL")
+				? "PASS"
+				: "FAIL")
 		<< std::endl;
 	return Duration;
 }
@@ -149,27 +137,20 @@ std::chrono::nanoseconds qHilbertBench()
 				TargetPoints.begin(),
 				TargetPoints.end(),
 				Positions.begin(),
-				[](const Vector2<std::uint32_t>& A, const Vector2<std::uint32_t>& B) -> bool
-				{
-					//std::printf(
-					//	"(%u,%u)==(%u,%u)\t",
-					//	A.X,
-					//	A.Y,
-					//	B.X,
-					//	B.Y
-					//);
-					return A.X == B.X && A.Y == B.Y;
-				}
+				Vector2Equal<std::uint32_t, std::uint32_t>
 			)
-				? "\nPASS"
-				: "\nFAIL")
+				? "PASS"
+				: "FAIL")
 		<< std::endl;
 	return Duration;
 }
 
 int main()
 {
+	// Distance integers from [0,N^2 - 1]
 	std::iota(Distances.begin(), Distances.end(), 0);
+
+	// Generate ground-truth variables
 	for( std::size_t i = 0; i < Distances.size(); ++i )
 	{
 		d2xy(
@@ -180,8 +161,8 @@ int main()
 		);
 	}
 
-	const auto WikiTime = WikiBench();
-	const auto qHilbertTime = qHilbertBench();
+	const std::chrono::nanoseconds WikiTime = WikiBench();
+	const std::chrono::nanoseconds qHilbertTime = qHilbertBench();
 
 	std::cout
 		<< "Speedup: "
