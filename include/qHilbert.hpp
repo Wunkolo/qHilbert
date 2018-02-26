@@ -128,7 +128,7 @@ void qHilbert(
 			);
 
 			// Calculate Flipped X and Y
-			// Level - 1 - PositionX
+	// Level - 1 - PositionX
 			// Level - 1 - PositionY
 			PositionsX = _mm512_mask_sub_epi32(
 				PositionsX,
@@ -158,7 +158,7 @@ void qHilbert(
 			PositionsY = SwappedY;
 
 			// Increment Positions
-			// PosX += RegionsX ? Level : 0
+	// PosX += RegionsX ? Level : 0
 			// PosY += RegionsY ? Level : 0
 			PositionsX = _mm512_mask_add_epi32(PositionsX,RegXOne,PositionsX,Levels),
 			PositionsY = _mm512_mask_add_epi32(PositionsY,RegYOne,PositionsY,Levels),
@@ -316,12 +316,12 @@ void qHilbert(
 			// PosY += RegionsY ? Level : 0
 			PositionsX = _mm256_blendv_epi8(
 				PositionsX,
-				_mm256_add_epi32(PositionsX,Levels),
+				_mm256_add_epi32(PositionsX, Levels),
 				RegXOne
 			);
 			PositionsY = _mm256_blendv_epi8(
 				PositionsY,
-				_mm256_add_epi32(PositionsY,Levels),
+				_mm256_add_epi32(PositionsY, Levels),
 				RegYOne
 			);
 			// CurDistance = Dist / 4
@@ -460,12 +460,12 @@ void qHilbert(
 			// PosY += RegionsY ? Level : 0
 			PositionsX = _mm_blendv_epi8(
 				PositionsX,
-				_mm_add_epi32(PositionsX,Levels),
+				_mm_add_epi32(PositionsX, Levels),
 				RegXOne
 			);
 			PositionsY = _mm_blendv_epi8(
 				PositionsY,
-				_mm_add_epi32(PositionsY,Levels),
+				_mm_add_epi32(PositionsY, Levels),
 				RegYOne
 			);
 			// CurDistance = Dist / 4
@@ -486,7 +486,7 @@ void qHilbert(
 		Index += 4;
 	}
 #endif
-/// ARM ( NEON )
+	/// ARM ( NEON )
 
 #ifdef __ARM_NEON
 #pragma message "NEON Enabled"
@@ -580,7 +580,7 @@ void qHilbert(
 	}
 #endif
 	// Unaligned
-	for( std::size_t i = Index ; i < Count; ++i )
+	for( std::size_t i = Index; i < Count; ++i )
 	{
 		qHilbertSerial(
 			Width,
