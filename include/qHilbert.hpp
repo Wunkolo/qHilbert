@@ -40,15 +40,15 @@ inline void qHilbertSerial(
 		{
 			if( RegionX == 1 )
 			{
-				Position.X = Level - 1 - Position.X;
-				Position.Y = Level - 1 - Position.Y;
+				Position.X = static_cast<std::uint32_t>(Level - 1 - Position.X);
+				Position.Y = static_cast<std::uint32_t>(Level - 1 - Position.Y);
 			}
 			//Swap x and y
 			std::swap(Position.X, Position.Y);
 		}
 		// "Move" the XY ahead where needed
-		Position.X += Level * RegionX;
-		Position.Y += Level * RegionY;
+		Position.X += static_cast<std::uint32_t>(Level * RegionX);
+		Position.Y += static_cast<std::uint32_t>(Level * RegionY);
 		CurDistance /= 4;
 	}
 }
@@ -63,9 +63,9 @@ void qHilbert(
 	std::size_t Index = 0;
 #ifdef _MSC_VER
 	std::uint32_t Depth;
-	_BitScanReverse(
+	_BitScanReverse64(
 		reinterpret_cast<unsigned long*>(&Depth),
-		Width
+		static_cast<std::uint64_t>(Width)
 	);
 #else
 	const std::uint32_t Depth = __builtin_clz(Width) - 1;
