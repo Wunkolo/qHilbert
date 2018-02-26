@@ -176,6 +176,7 @@ else()
 		Benchmark-avx2
 		PRIVATE
 		__AVX2__
+		__SSE4_2__
 	)
 
 	# AVX512F
@@ -196,5 +197,7 @@ else()
 		Benchmark-avx512f
 		PRIVATE
 		__AVX512F__
+		__AVX2__
+		__SSE4_2__
 	)
 endif()
