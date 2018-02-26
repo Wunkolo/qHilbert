@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(__x86_64__) || defined(_M_X64_)
+#if defined(__x86_64__) || defined(_M_X64)
 
 #include <immintrin.h>
 #ifdef _MSC_VER
