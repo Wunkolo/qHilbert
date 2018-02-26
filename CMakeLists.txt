@@ -137,7 +137,7 @@ else()
 	)
 	
 	target_compile_definitions(
-		Benchmark-ALL
+		Benchmark
 		PRIVATE
 		__AVX512F__
 		__AVX2__
