@@ -12,7 +12,6 @@ set( CMAKE_VERBOSE_MAKEFILE ON )
 
 ### Optimizations
 if( MSVC )
-	add_compile_options( /arch:AVX2 )
 	add_compile_options( /W3 )
 elseif( CMAKE_COMPILER_IS_GNUCXX )
 	add_compile_options( -O2 )
@@ -26,7 +25,6 @@ enable_testing()
 # Benchmarks
 
 if( CMAKE_COMPILER_IS_GNUCXX )
-	message( STATUS  ${CMAKE_SYSTEM_PROCESSOR})
 	if( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86" )
 		set(
 			Benches
@@ -125,26 +123,78 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 		COMMAND Benchmark-base
 	)
 else()
-	# Default target
+	# Base
 	add_executable(
-		Benchmark
+		Benchmark-base
 		tests/benchmark.cpp
 	)
 	target_include_directories(
-		Benchmark
+		Benchmark-base
 		PRIVATE
 		include
 	)
-	
-	target_compile_definitions(
-		Benchmark
+	add_test(
+		NAME Benchmark-base
+		COMMAND Benchmark-base
+	)
+
+	# SSE4.2
+	add_executable(
+		Benchmark-sse4.2
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark-sse4.2
 		PRIVATE
-		__AVX512F__
-		__AVX2__
-		__SSE4_2__
+		include
 	)
 	add_test(
-		NAME Benchmark
-		COMMAND Benchmark
+		NAME Benchmark-sse4.2
+		COMMAND Benchmark-sse4.2
+	)
+	target_compile_definitions(
+		Benchmark-sse4.2
+		PRIVATE
+		__SSE4_2__
+	)
+
+	# AVX2
+	add_executable(
+		Benchmark-avx2
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark-avx2
+		PRIVATE
+		include
+	)
+	add_test(
+		NAME Benchmark-avx2
+		COMMAND Benchmark-avx2
+	)
+	target_compile_definitions(
+		Benchmark-avx2
+		PRIVATE
+		__AVX2__
+	)
+
+	# AVX512F
+	add_executable(
+		Benchmark-avx512f
+		tests/benchmark.cpp
+	)
+	target_include_directories(
+		Benchmark-avx512f
+		PRIVATE
+		include
+	)
+	add_test(
+		NAME Benchmark-avx512f
+		COMMAND Benchmark-avx512f
+	)
+	target_compile_definitions(
+		Benchmark-avx512f
+		PRIVATE
+		__AVX512F__
 	)
 endif()
