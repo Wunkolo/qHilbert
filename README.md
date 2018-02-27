@@ -68,7 +68,7 @@ A pattern that can be noticed is that with each fully visited quadrant the lower
 Order 1
 +---+---+        +-------+   
 | 0 | 3 |        | +   + |   
-|---+---| -----> | |   | |   ( the "U" shape that ill be talking about)
+|---+---| -----> | |   | |   ( the "U" shape that I'll be talking about)
 | 1 | 2 |        | +---+ |   
 +---+---+        +-------+   
         Binary
@@ -282,6 +282,9 @@ void qHilbert(
 )
 {
 	std::size_t Index = 0;
+	// Since "Width" is always a power-of-two it will always take the form of
+	// 1, 10, 100, 1000, 10000, ...
+	// 
 	const std::uint32_t Depth = __builtin_clz(Width) - 1;
 	/// 4 at a time ( NEON )
 	for( std::size_t i = Index; i < Count / 4; ++i )
@@ -294,14 +297,14 @@ void qHilbert(
 		uint32x4_t Levels = vdupq_n_u32(1);
 		for( std::size_t j = 0; j < Depth; ++j )
 		{
-			// Levels - 1
+			// Levels - 1, used for mirroring 
 			const uint32x4_t LevelBound = vsubq_u32( Levels, vmovq_n_u32(1) );
-			// RegionX
+			// RegionX, first gray code bit
 			const uint32x4_t RegionsX = vandq_u32(
 				vshrq_n_u32( CurDistances, 1 ),
 				vdupq_n_u32(1)
 			);
-			// RegionY
+			// RegionY, secong gray code bit
 			const uint32x4_t RegionsY = vandq_u32(
 				veorq_u32(CurDistances,RegionsX),
 				vdupq_n_u32(1)
