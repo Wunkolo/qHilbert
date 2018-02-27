@@ -41,13 +41,23 @@ The "U" shape traversal is rotated/flipped in such a way to keep the endpoints o
 Second order Hilbert curve of Width 4
 +----+----+----+----+      +-------+-------+      +---------------+
 |  0 |  1 | 14 | 15 |      | +---+ | +---+ |      | +---+   +---+ |
-|----0----|----3----|      >   0 | | | 3   >      |     |   |     |
+|----0----|----3----|      >   0 | | | 3   >      |   * |   | *   |
 |  3 |  2 | 13 | 12 |      | +---+ | +---+ |      | +---+   +---+ |
 +----+----+----+----+ ---> +---V---+---^---+ ---> | |           | |
 |  4 |  7 |  8 | 11 |      | +   + | +   + |      | +   +---+   + |
-|----1----|----2----|      | | 1 | > | 2 | |      | |   |   |   | |
+|----1----|----2----|      | | 1 | > | 2 | |      | | * |   | * | |
 |  5 |  6 |  9 | 10 |      | +---+ | +---+ |      | +---+   +---+ |
 +----+----+----+----+      +-------+-------+      +---------------+
+
+                +---------------+
+                | +---+   +---+ |
+                |     |   |     |
+                | +---+   +---+ |
+                | |           | |
+                | +   +---+   + |
+                | |   |   |   | |
+                | +---+   +---+ |
+                +---------------+
 ```
 
 Further iteration Hilbert curves of Width `N`(where `N` is a positive power of two) can be calculated recursively by generating the first-order, then the second order, then the third, up to the `log2(N)`th order to generate a curve of `N^2` points.
@@ -123,15 +133,15 @@ Given any positive integer index `d` where `d <= (N^2 - 1)` and `N` is a power-o
 - For each level of recursion, from 1 to Log2(N):
   - Map the integer index into the correct "U" quadrant vector
     - [Convert the decimal value into a 2-bit gray-code at that index](https://en.wikipedia.org/wiki/Gray_code#Converting_to_and_from_Gray_code).
-    - This `(X,Y)` vector made from the two graycode bits is the current `offset`
+    - This `(X,Y)` `offset` vector made from the two graycode bits is the current `offset`
   - Based on the graycode bit-vector(the quadrant that it lands on):
     - `XY` : `Operation`
     - `00` : Swap X and Y ( Diagonal Flip )
     - `01` : _Leave as-is_
     - `11` : _Leave as-is_
-    - `10` : Invert X and Y( Rotate 180 ), Swap X and Y ( Diagonal Flip )
-  - Multiply this new vector by the index of current recursion level(1,2,4,8,etc)
-  - Add this vector to your result vector
+    - `10` : Invert X and Y( Reflect ), Swap X and Y ( Diagonal Flip )
+  - Multiply this `offset` by the recursion level(1,2,4,8,etc)
+  - Add this `offset` to your result vector
 
 A breakdown of index number `14` found within an Order 2(`N=4`) Hilbert curve:
 ```
@@ -142,10 +152,10 @@ A breakdown of index number `14` found within an Order 2(`N=4`) Hilbert curve:
           quadrant  sub-quadrant (within the 11 quadrant of Order 1)
           |  11                  | 01
           V                      V
- +----+----+                 +----+----+       The previous         +----+----+
- | -- | 11 |                 | -- | -- |       recursion said       | 01 | -- |
- |----+----|                 |----+----| ------to invert XY------>  |----+----|
- | -- | -- |                 | 01 | -- |       and swap XY!         | -- | -- |
+ 0----1----+                 0----1----+       The previous         0----1----+
+ | -- | 11 | (1,0)           | -- | -- |       recursion said       | 01 | -- |  (0,0)
+ 1----+----|                 1----+----| ------to invert XY------>  1----+----|
+ | -- | -- |           (0,1) | 01 | -- |       and swap XY!         | -- | -- |
  +----+----+                 +----+----+     (for this quadrant)    +----+----+
 
 11(bin) -> 10(gray)          01(bin) -> 01(gray)
@@ -156,16 +166,16 @@ the quadrant within this one
                                                            1    :   01   :  01
                                                            2    :   10   :  11
                                                            3    :   11   :  10
-                  Final position:
-                  +----+----+----+----+      +---------------+
-                  |    |    | 14 |    |      | +---+   O---+ |
-                  |----+----|----+----|      |     |   |     |
-                  |    |    |    |    |      | +---+   +---+ |
-                  +----+----+----+----+ ---> | |           | |
-                  |    |    |    |    |      | +   +---+   + |
-                  |----+----|----+----|      | |   |   |   | |
-                  |    |    |    |    |      | +---+   +---+ |
-                  +----+----+----+----+      +---------------+
+                  Final position: (2,0)
+                  0----1----2----3----+           0---1---2---3---+
+    (1,0) x 2     |    |    | 14 |    |           | +---+   O---+ |
+  + (0,0) x 1     1----+----|----+----|           1     |   |     |
+  ----------      |    |    |    |    |           | +---+   +---+ |
+    (2,0)         2----+----+----+----+  ------>  2 |           | |
+                  |    |    |    |    |           | +   +---+   + |
+                  3----+----|----+----|           3 |   |   |   | |
+                  |    |    |    |    |           | +---+   +---+ |
+                  +----+----+----+----+           +---------------+
 ```
 
 
