@@ -201,7 +201,7 @@ void d2xy(int n, int d, int *x, int *y) {
     }
 }
 ```
-which qHilbert implements similarly as the _serial_ verion of the algorithm like so:
+which qHilbert implements similarly as the _serial_ verion of the algorithm. With some added documentation to understand what's going on.
 ```cpp
 template< typename T >
 struct Vector2
@@ -212,7 +212,7 @@ struct Vector2
 // qHilbert
 inline void qHilbertSerial(
 	std::size_t Width, // Must be a power of 2
-	const std::uint32_t Distance,
+	std::uint32_t Distance,
 	Vector2<std::uint32_t>& Position
 )
 {
