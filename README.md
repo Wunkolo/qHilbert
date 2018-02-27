@@ -2,6 +2,11 @@
 
 qHilbert is a vectorized speedup of Hilbert curve generation using SIMD intrinsics.
 
+|||||
+|:-:|:-:|:-:|:-:|
+Serial|SSE42/Neon|AVX2|AVX512
+![](images/Serial.gif)|![](images/SSE42.gif)|![](images/AVX2.gif)|![](images/AVX512.gif)|
+
 ---
 
 |||
@@ -187,5 +192,181 @@ void d2xy(int n, int d, int *x, int *y) {
     }
 }
 ```
+which qHilbert implements as the _serial_ verion of the algorithm like so:
+```cpp
+template< typename T >
+struct Vector2
+{
+	T X, Y;
+};
 
-If you wanted to generate all the points of a hilbert curve, you would have to call `d2xy` on all integers from `0` to `N^2 - 1` to get all the `N^2` points of the curve:
+// qHilbert
+inline void qHilbertSerial(
+	std::size_t Width, // Must be a power of 2
+	const std::uint32_t Distance,
+	Vector2<std::uint32_t>& Position
+)
+{
+	std::size_t CurDistance = Distance;
+	Position.X = Position.Y = 0;
+	for( std::size_t Level = 1; Level < Width; Level *= 2 )
+	{
+		// find out what quadrant T is in
+		const std::uint8_t RegionX = 0b1 & (CurDistance / 2);
+		const std::uint8_t RegionY = 0b1 & (CurDistance ^ RegionX);
+		// Add a flip to our current XY
+		if( RegionY == 0 )
+		{
+			if( RegionX == 1 )
+			{
+				Position.X = static_cast<std::uint32_t>(Level - 1 - Position.X);
+				Position.Y = static_cast<std::uint32_t>(Level - 1 - Position.Y);
+			}
+			//Swap x and y
+			std::swap(Position.X, Position.Y);
+		}
+		// "Move" the XY ahead where needed
+		Position.X += static_cast<std::uint32_t>(Level * RegionX);
+		Position.Y += static_cast<std::uint32_t>(Level * RegionY);
+		CurDistance /= 4;
+	}
+}
+```
+
+If you wanted to generate all the points of a `32x32` Hilbert curve, you would have to call `d2xy` or `qHilbertSerial` on all integers from `0` to `N^2 - 1` to get all the `N^2` (`1024`) points of the curve in `1024` steps:
+
+![](images/Serial.gif)
+
+Points along the hilbert curve are entirely independent, and thus can be calculated entirely in parallel using the same nonrecursive-gray-code-conditional-swap that follows the original logic.
+
+
+# Vectorization
+
+[SSE](https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions)(x86) and [NEON](https://en.wikipedia.org/wiki/ARM_architecture#Advanced_SIMD_(NEON))(ARM) both allow for up to **4** points to be calculated in parallel with their 128-bit registers, reducing the `1024` steps from before down to only `256` iterations. See [qHilbert.hpp](include/qHilbert.hpp) for further implementation details.
+
+![](images/SSE42.gif)
+
+The code below is a sample implementation using ARM's `NEON` to easier illustrate the vectorized algorithm, processing four distances at a time and emitting four 2D vector pairs of `uint32_t` components. Unaligned iterations are handled by the serial algorithm.
+```cpp
+void qHilbert(
+	std::size_t Width, // Must be power of 2
+	const std::uint32_t Distances[],
+	Vector2<std::uint32_t> Positions[],
+	std::size_t Count
+)
+{
+	std::size_t Index = 0;
+	const std::uint32_t Depth = __builtin_clz(Width) - 1;
+	/// 4 at a time ( NEON )
+	for( std::size_t i = Index; i < Count / 4; ++i )
+	{
+		uint32x4_t PositionsX = {0};
+		uint32x4_t PositionsY = {0};
+		uint32x4_t CurDistances = vld1q_u32(
+			reinterpret_cast<const std::uint32_t*>(&Distances[Index])
+		);
+		uint32x4_t Levels = vdupq_n_u32(1);
+		for( std::size_t j = 0; j < Depth; ++j )
+		{
+			// Levels - 1
+			const uint32x4_t LevelBound = vsubq_u32( Levels, vmovq_n_u32(1) );
+			// RegionX
+			const uint32x4_t RegionsX = vandq_u32(
+				vshrq_n_u32( CurDistances, 1 ),
+				vdupq_n_u32(1)
+			);
+			// RegionY
+			const uint32x4_t RegionsY = vandq_u32(
+				veorq_u32(CurDistances,RegionsX),
+				vdupq_n_u32(1)
+			);
+
+			// RegionX == 1
+			const uint32x4_t RegXOne = 
+				vceqq_u32(
+					RegionsX,
+					vdupq_n_u32(1)
+				);
+			// RegionY == 1
+			const uint32x4_t RegYOne = 
+				vceqq_u32(
+					RegionsY,
+					vdupq_n_u32(1)
+				);
+			// RegionY == 0
+			const uint32x4_t RegYZero = 
+				vceqq_u32(
+					RegionsY,
+					vdupq_n_u32(0)
+				);
+
+			// Flip, if RegX[i] == 1 and RegY[i] == 0
+			const uint32x4_t FlipMask = vandq_u32( RegXOne, RegYZero );
+			const uint32x4_t FlippedX = vsubq_u32( LevelBound, PositionsX );
+			const uint32x4_t FlippedY = vsubq_u32( LevelBound, PositionsY );
+			PositionsX = vbslq_u32( FlipMask, FlippedX, PositionsX );
+			PositionsY = vbslq_u32( FlipMask, FlippedY, PositionsY );
+
+			// Swap X and Y if RegY[i] == 0
+			const uint32x4_t SwappedX = vbslq_u32(
+				RegYZero,
+				PositionsY,
+				PositionsX
+			);
+			const uint32x4_t SwappedY = vbslq_u32(
+				RegYZero,
+				PositionsX,
+				PositionsY
+			);
+			PositionsX = SwappedX;
+			PositionsY = SwappedY;
+
+			// Integrate Positions
+			PositionsX = vbslq_u32(
+				RegXOne,
+				vaddq_u32(PositionsX,Levels),
+				PositionsX
+			);
+			PositionsY = vbslq_u32(
+				RegYOne,
+				vaddq_u32(PositionsY,Levels),
+				PositionsY
+			);
+
+			// CurDistance /= 4
+			CurDistances = vshrq_n_u32( CurDistances, 2 );
+			// Levels *= 2
+			Levels = vshlq_n_u32( Levels, 1);
+		}
+		// Interleaved write of (x,y) vectors
+		const uint32x4x2_t Interleaved = vzipq_u32( PositionsX, PositionsY );
+		vst1q_u32(
+			reinterpret_cast<uint32_t*>(&Positions[Index]),
+			Interleaved.val[0]
+		);
+		vst1q_u32(
+			reinterpret_cast<uint32_t*>(&Positions[Index + 2]),
+			Interleaved.val[1]
+		);
+		Index += 4;
+	}
+	// Unaligned
+	for( std::size_t i = Index; i < Count; ++i )
+	{
+		qHilbertSerial(
+			Width,
+			Distances[i],
+			Positions[i]
+		);
+		Index += 1;
+	}
+}
+```
+
+[AVX2](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#Advanced_Vector_Extensions_2)'s 256-bit registers allow for even more parallel operations on up to **8** elements at once. Reducing the original `1024` iterations down to just `128` iterations being done to compute the full Hilbert curve.
+
+![](images/AVX2.gif)
+
+[AVX512](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-512)'s 512-bit registers allow for even more parallel operations on up to **16** elements at once. Reducing the original `1024` iterations down to just `64` iterations being done to compute the full Hilbert curve.
+
+![](images/AVX512.gif)
