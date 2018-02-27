@@ -30,8 +30,7 @@ First order Hilbert curve of Width 2
 +---+---+        +-------+          ^
                                     |
 Notice the gray-code like pattern with the vectors
-
-Try this python one-liner on for size to see how to generate graycodes
+Try this python one-liner on for size and check out how it generate graycodes
     [ (1 & (x//2), 1 & ((x//2)^x)) for x in [0,1,2,3] ]
 ```
 
@@ -321,10 +320,12 @@ void qHilbert(
 			const uint32x4_t FlipMask = vandq_u32( RegXOne, RegYZero );
 			const uint32x4_t FlippedX = vsubq_u32( LevelBound, PositionsX );
 			const uint32x4_t FlippedY = vsubq_u32( LevelBound, PositionsY );
+			// Pick either the Original, or the flipped based on the mask
 			PositionsX = vbslq_u32( FlipMask, FlippedX, PositionsX );
 			PositionsY = vbslq_u32( FlipMask, FlippedY, PositionsY );
 
 			// Swap X and Y if RegY[i] == 0
+			// Pick either the Original, or the Swapped based on the mask
 			const uint32x4_t SwappedX = vbslq_u32(
 				RegYZero,
 				PositionsY,
@@ -339,6 +340,7 @@ void qHilbert(
 			PositionsY = SwappedY;
 
 			// Integrate Positions
+			// Pick either the original, or the added version based on the mask
 			PositionsX = vbslq_u32(
 				RegXOne,
 				vaddq_u32(PositionsX,Levels),
