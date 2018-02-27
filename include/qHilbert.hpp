@@ -24,7 +24,7 @@ struct Vector2
 // qHilbert
 inline void qHilbertSerial(
 	std::size_t Width, // Must be a power of 2
-	const std::uint32_t Distance,
+	std::uint32_t Distance,
 	Vector2<std::uint32_t>& Position
 )
 {
