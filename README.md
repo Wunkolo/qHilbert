@@ -19,7 +19,7 @@ qHilbert is an attempt at a vectorized speedup of mapping multiple linear 1D ind
 
 ---
 
-A one-dimensional index(finite distance along the curve) can be mapped into a 2D point on the hilbert curve by recursively adjusting the position of the resulting 2d point at each level recursion. The base case for a first-order hilbert curve is a 2D space of width 2 split into 4 quadrants. Each quadrant is visited in a "U" shape at the distances 0, 1, 2, and 3. Each quadrant being a vector-offset away from the origin( with `(0,0)` being the top-left). Every self-similar feature of the hilbert curve is rooted at this basis shape with 2D vectors taking on a "gray code" pattern in its elements.
+A one-dimensional index(finite distance along the curve) can be mapped into a 2D point on the hilbert curve by recursively adjusting the position of an initial 2d point (0,0) at each level recursion. The base case for a first-order hilbert curve is a 2D space of width 2 split into 4 quadrants. Each quadrant is visited in a "U" shape at the distances 0, 1, 2, and 3. Each quadrant being a vector-offset away from the origin( with `(0,0)` being the top-left). Every self-similar feature of the hilbert curve is rooted at this basis pattern with 2D vectors taking on a "gray code"-like pattern in its dimensional components
 
 ```
 First order Hilbert curve of Width 2
@@ -27,11 +27,16 @@ First order Hilbert curve of Width 2
 | 0 | 3 |        | +   + |    1: ( 0, 1 )
 |---+---| -----> | |   | |    2: ( 1, 1 )
 | 1 | 2 |        | +---+ |    3: ( 1, 0 )
-+---+---+        +-------+    (Notice the gray-code like pattern)
++---+---+        +-------+          ^
+                                    |
+Notice the gray-code like pattern with the vectors
+
+Try this python one-liner on for size to see how to generate graycodes
+    [ (1 & (x//2), 1 & ((x//2)^x)) for x in [0,1,2,3] ]
 ```
 
-A second-order Hilbert curve of Width 4 is induced using the previous order Hilbert curve of Width 2 by further sub-dividing the quadrants 0,1,2, and 3 into even smaller quadrants, and traversing each quadrant in rotated "U" shapes yet again while the upper quadrands are being traversed in a "U" shape as well before moving on to the next quadrant. This "U" shaped traversal is happening at multiple levels of recursion at once.
-The "U" shape traversal is rotated/flipped in such a way to keep the endpoints of the "U" close to the entrance and exits of the quadrant being traversed before it.
+A second-order Hilbert curve of Width 4 is induced using the previous order Hilbert curve of Width 2 by further sub-dividing the quadrants 0,1,2, and 3 into even smaller quadrants, and traversing each quadrant in alternate "U" shapes yet again while the upper quadrands are being traversed in various "U" shapes as well before moving on to the next quadrant. This "U" shaped traversal is happening at multiple levels of recursion at once while traversing the entire curve
+The "U" shape traversal is rotated/flipped in such a way to keep the endpoints of the "U"-order close to the entrance and exits of the quadrant being traversed before it.
 
 ```
 Second order Hilbert curve of Width 4
@@ -46,9 +51,9 @@ Second order Hilbert curve of Width 4
 +----+----+----+----+      +-------+-------+      +---------------+
 ```
 
-Further iteration Hilbert curves of Width `N`(where `N` is a positive power of two) can be calculated recursively by generating the first-order, then the second order, then the third, up to the `log2(N)`th order to generate a curve of `N^2 - 1` indices(distances).
+Further iteration Hilbert curves of Width `N`(where `N` is a positive power of two) can be calculated recursively by generating the first-order, then the second order, then the third, up to the `log2(N)`th order to generate a curve of `N^2` points.
 
-A pattern that can be noticed is that with each fully visited quadrant the lower 2-bits of the index would change the fastest, while each supersedeing 2 bits would seem to describe what upper-order quadrant the point is in though not exactly. If this were a quad-tree like structure where every quadrant was traversed exactly the same, then every group of 2 bits would describe exactly what sub-quadrant it was in, but hilbert curves are structured very differently such that the beginning and ends of the "U" shape are rotated and flipped around such that the "entrance" and "exits" of each "U" are always touching. The usual "∪" order could be a "⊂" or "∩" or "ᴝ" depending on what level of recursion and what quadrant the index happens to land in.
+A pattern that can be noticed is that with each fully visited quadrant the lower 2-bits of the index would change the fastest, while each supersedeing 2 bits would seem to describe what upper-order quadrant the point is in, though not exactly:
 
 ```
 Order 1
@@ -99,21 +104,27 @@ Order 2
         +-------+-------+-------+-------+
 ```
 
-Notice the most significant pair of bits in Order 2(the left pair of bits) are exactly the same as the the Order 1 bits. The lower pair follows the same `00`,`01`,`10`,`11` pattern but flipped and rotated depending on the previous Order's traversal. This pattern in bits can be generalized to convert any index/distance into its appropriate 2D point by utilizing this pattern.
+If this were a quad-tree-like structure where every quadrant was traversed exactly the same, then every group of 2 bits would describe exactly what sub-quadrant it was in, but hilbert curves are structured very differently such that the beginning and ends of the "U" shape are rotated and flipped around such that the "entrance" and "exits" of each "U" are always touching. The usual "∪"-order could be a "⊂" or "∩" or "ᴝ" depending on the level of recursion before the current and what quadrants the index happens to land in.
 
-Given any positive integer index `d` where `d <= (N^2 - 1)` it is possible to group up binary pairs that make up the integer to identify exactly what quadrant of each level of recursion it is in, and also determine what offsets would need to achieve the 2D point located at that distance.
+Notice the most significant pair of bits in Order 2(the left pair of bits) are exactly the same as the the Order 1 bits. The lower pair follows the same `00`,`01`,`10`,`11` pattern but the upper two seem like flipped or rotated version. This pattern in bits can be generalized to convert any index/distance into its appropriate 2D point by utilizing this reoccuring trend in bits.
 
-The last 2 bits do not immediately land on the correct quadrant since the order in which the quadrands are traversed try to keep their "exits" and "entrance" touching each other, always flipping and rotating the upper two quadrants when necessary depending on the current recursion level.
+Every level of recursion would always have the previous level doing these transformations to its quadrants.
 
-Mapping an integer index into a 2D point involves the following steps:
+```
++-------------+---------------+
+| 0 Flip45    | 3 Refl-Flip45 |
+|-------------+---------------|
+| 1 Unchanged | 2 Unchanged   |
++-------------+---------------+
+```
 
-General operation to convert from a 1D Index to a 2D vector
+Given any positive integer index `d` where `d <= (N^2 - 1)` and `N` is a power-of-two width for your Hilbert curve, it is possible to group up binary pairs within the index to generate each recursion level's contribution to the final point 2D point. Mapping an integer index into a 2D point involves the general steps steps:
+
 - Initialize your result vector (0,0)
-- For each level of recursion, starting from Order 1:
+- For each level of recursion, from 1 to Log2(N):
   - Map the integer index into the correct "U" quadrant vector
     - [Convert the decimal value into a 2-bit gray-code at that index](https://en.wikipedia.org/wiki/Gray_code#Converting_to_and_from_Gray_code).
     - This `(X,Y)` vector made from the two graycode bits is the current `offset`
-  
   - Based on the graycode bit-vector(the quadrant that it lands on):
     - `XY` : `Operation`
     - `00` : Swap X and Y ( Diagonal Flip )
@@ -123,17 +134,6 @@ General operation to convert from a 1D Index to a 2D vector
   - Multiply this new vector by the index of current recursion level(1,2,4,8,etc)
   - Add this vector to your result vector
 
-This means that, at any level of recursion after the first, the following transformations to each quadrant are happening to all the recursion levels that came before it.
-
-```
-+-------------+---------------+
-| 0  Flip     | 3 ReflectFlip |
-|-------------+---------------|
-| 1  Keep     | 2    Keep     |
-+-------------+---------------+
-```
-
-
 A breakdown of index number `14` found within an Order 2(`N=4`) Hilbert curve:
 ```
   14 -> 1101 -> 11 01
@@ -141,13 +141,13 @@ A breakdown of index number `14` found within an Order 2(`N=4`) Hilbert curve:
                  |  |
            Order 1  Order 2
           quadrant  sub-quadrant (within the 11 quadrant of Order 1)
-          |  11        | 01
-          V            V
- +----+----+       +----+----+       The previous      +----+----+
- | -- | 11 |       | -- | -- |       recursion said    | 01 | -- |
- |----+----|       |----+----| ------to invert XY----> |----+----|
- | -- | -- |       | 01 | -- |       and swap XY!      | -- | -- |
- +----+----+       +----+----+                         +----+----+
+          |  11                  | 01
+          V                      V
+ +----+----+                 +----+----+       The previous         +----+----+
+ | -- | 11 |                 | -- | -- |       recursion said       | 01 | -- |
+ |----+----|                 |----+----| ------to invert XY------>  |----+----|
+ | -- | -- |                 | 01 | -- |       and swap XY!         | -- | -- |
+ +----+----+                 +----+----+     (for this quadrant)    +----+----+
 
 11(bin) -> 10(gray)          01(bin) -> 01(gray)
  "invert X Y, Swap XY"       Leave as-is
@@ -157,11 +157,20 @@ the quadrant within this one
                                                            1    :   01   :  01
                                                            2    :   10   :  11
                                                            3    :   11   :  10
-
+                  Final position:
+                  +----+----+----+----+      +---------------+
+                  |    |    | 14 |    |      | +---+   O---+ |
+                  |----+----|----+----|      |     |   |     |
+                  |    |    |    |    |      | +---+   +---+ |
+                  +----+----+----+----+ ---> | |           | |
+                  |    |    |    |    |      | +   +---+   + |
+                  |----+----|----+----|      | |   |   |   | |
+                  |    |    |    |    |      | +---+   +---+ |
+                  +----+----+----+----+      +---------------+
 ```
 
 
-Wikipedia has an implementation in C of this algorithm:
+[Wikipedia](https://en.wikipedia.org/wiki/Hilbert_curve#Applications_and_mapping_algorithms) has an implementation in C of this algorithm:
 
 ```c
 //rotate/flip a quadrant appropriately
@@ -192,7 +201,7 @@ void d2xy(int n, int d, int *x, int *y) {
     }
 }
 ```
-which qHilbert implements as the _serial_ verion of the algorithm like so:
+which qHilbert implements similarly as the _serial_ verion of the algorithm like so:
 ```cpp
 template< typename T >
 struct Vector2
@@ -209,25 +218,33 @@ inline void qHilbertSerial(
 {
 	std::size_t CurDistance = Distance;
 	Position.X = Position.Y = 0;
+	// This for loop could easily use a "clz" instruction on "Width" to
+	// determine how many times it has to run since it's always a power of 2
 	for( std::size_t Level = 1; Level < Width; Level *= 2 )
 	{
-		// find out what quadrant T is in
+		// Find out what quadrant T is in
+		// Determine Graycode bits for the current 2 bits.
+		// This is the current offset (X,Y)
 		const std::uint8_t RegionX = 0b1 & (CurDistance / 2);
 		const std::uint8_t RegionY = 0b1 & (CurDistance ^ RegionX);
-		// Add a flip to our current XY
+		// Add a flip to our current XY based on graycode bits
 		if( RegionY == 0 )
 		{
 			if( RegionX == 1 )
 			{
+				// Flip/Invert X and Y 
 				Position.X = static_cast<std::uint32_t>(Level - 1 - Position.X);
 				Position.Y = static_cast<std::uint32_t>(Level - 1 - Position.Y);
 			}
 			//Swap x and y
 			std::swap(Position.X, Position.Y);
 		}
-		// "Move" the XY ahead where needed
+		// "Move" the XY ahead where needed based on current offset vector
 		Position.X += static_cast<std::uint32_t>(Level * RegionX);
 		Position.Y += static_cast<std::uint32_t>(Level * RegionY);
+
+		// This division by 4 is the same as a bitshift to the right 2 bits
+		// Basically moves the next 2 bits over for the next operation
 		CurDistance /= 4;
 	}
 }
@@ -242,7 +259,7 @@ Points along the hilbert curve are entirely independent, and thus can be calcula
 
 # Vectorization
 
-[SSE](https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions)(x86) and [NEON](https://en.wikipedia.org/wiki/ARM_architecture#Advanced_SIMD_(NEON))(ARM) both allow for up to **4** points to be calculated in parallel with their 128-bit registers, reducing the `1024` steps from before down to only `256` iterations. See [qHilbert.hpp](include/qHilbert.hpp) for further implementation details.
+[SSE](https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions)(x86) and [NEON](https://en.wikipedia.org/wiki/ARM_architecture#Advanced_SIMD_(NEON))(ARM) vector extensions both allow for up to **4** points to be calculated in parallel with their 128-bit registers, reducing the `1024` steps from before down to only `256` iterations. See [qHilbert.hpp](include/qHilbert.hpp) for further implementation details.
 
 ![](images/SSE42.gif)
 
@@ -363,9 +380,13 @@ void qHilbert(
 }
 ```
 
+---
+
 [AVX2](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#Advanced_Vector_Extensions_2)'s 256-bit registers allow for even more parallel operations on up to **8** elements at once. Reducing the original `1024` iterations down to just `128` iterations being done to compute the full Hilbert curve.
 
 ![](images/AVX2.gif)
+
+---
 
 [AVX512](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-512)'s 512-bit registers allow for even more parallel operations on up to **16** elements at once. Reducing the original `1024` iterations down to just `64` iterations being done to compute the full Hilbert curve.
 
