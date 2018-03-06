@@ -178,8 +178,11 @@ the quadrant within this one
                   +----+----+----+----+           +---------------+
 ```
 
+In Butz's words:
+![](images/Butz-Pattern.jpg)
 
-[Wikipedia](https://en.wikipedia.org/wiki/Hilbert_curve#Applications_and_mapping_algorithms) has an implementation in C of this algorithm:
+
+[Wikipedia](https://en.wikipedia.org/wiki/Hilbert_curve#Applications_and_mapping_algorithms) has an implementation in C of this algorithm that follows the same trend in utilizing Gray code behavior:
 
 ```c
 //rotate/flip a quadrant appropriately
@@ -210,7 +213,7 @@ void d2xy(int n, int d, int *x, int *y) {
     }
 }
 ```
-which qHilbert implements similarly as the _serial_ verion of the algorithm. With some added documentation to understand what's going on.
+qHilbert's _serial_ implements this simiarly with some added documentation to understand what's going on to the reader
 ```cpp
 template< typename T >
 struct Vector2
