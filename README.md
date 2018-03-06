@@ -15,7 +15,7 @@ Serial|SSE42/Neon|AVX2|AVX512
 
 A hilbert curve is a space filling self-similar curve that provides a mapping between 2D space to 1D, and 1D to 2D space while preserving locality between mappings. Hilbert curves split a finite 2D space into recursive quadrants(similar to a [full quad-tree](https://en.wikipedia.org/wiki/Quadtree)) and traverse each quadrant in recursive "U" shapes at each iteration such that every quadrant gets fully visited before moving onto the next one.
 
-qHilbert is an attempt at a vectorized speedup of mapping multiple linear 1D indices into planar 2D points in parallel.
+qHilbert is an attempt at a vectorized speedup of mapping multiple linear 1D indices into planar 2D points in parallel that is based on the Butz Algorithm's[1] utilization of Gray code.
 
 ---
 
@@ -406,3 +406,9 @@ void qHilbert(
 [AVX512](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#AVX-512)'s 512-bit registers allow for even more parallel operations on up to **16** elements at once. Reducing the original `1024` iterations down to just `64` iterations being done to compute the full Hilbert curve.
 
 ![](images/AVX512.gif)
+
+
+---
+
+
+[1]: A. R. Butz, Convergence with Hilbert's space filling curve, J. Comput. Sys. Sci., vol. 3, May 1969, pp 128-146.
