@@ -74,7 +74,7 @@ void qHilbert(
 #ifdef __AVX512F__
 #pragma message "AVX512F Enabled"
 	/// 16 at a time ( AVX 512 )
-	for( std::size_t i = Index; i < Count / 16; ++i )
+	for( std::size_t i = Index; i < (Count-i) / 16; ++i )
 	{
 		__m512i PositionsX = _mm512_setzero_si512();
 		__m512i PositionsY = _mm512_setzero_si512();
@@ -222,7 +222,7 @@ void qHilbert(
 #ifdef __AVX2__
 #pragma message "AVX2 Enabled"
 	/// 8 at a time ( AVX 2 )
-	for( std::size_t i = Index; i < (Count % 16) / 8; ++i )
+	for( std::size_t i = Index; i < (Count - i) / 8; ++i )
 	{
 		__m256i PositionsX = _mm256_setzero_si256();
 		__m256i PositionsY = _mm256_setzero_si256();
@@ -366,7 +366,7 @@ void qHilbert(
 #ifdef __SSE4_2__
 #pragma message "SSE4.2 Enabled"
 	/// 4 at a time ( SSE4.2 )
-	for( std::size_t i = Index; i < (Count % 8) / 4; ++i )
+	for( std::size_t i = Index; i < (Count - i) / 4; ++i )
 	{
 		__m128i PositionsX = _mm_setzero_si128();
 		__m128i PositionsY = _mm_setzero_si128();
@@ -493,7 +493,7 @@ void qHilbert(
 #ifdef __ARM_NEON
 #pragma message "NEON Enabled"
 	/// 4 at a time ( NEON )
-	for( std::size_t i = Index; i < Count / 4; ++i )
+	for( std::size_t i = Index; i < (Count - i) / 4; ++i )
 	{
 		uint32x4_t PositionsX = {0};
 		uint32x4_t PositionsY = {0};
