@@ -9,6 +9,7 @@ set( CMAKE_CXX_EXTENSIONS OFF )
 ### Verbosity
 set( CMAKE_COLOR_MAKEFILE ON )
 set( CMAKE_VERBOSE_MAKEFILE ON )
+set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 ### Optimizations
 if( MSVC )

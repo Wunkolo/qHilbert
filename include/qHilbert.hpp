@@ -60,7 +60,7 @@ void qHilbert(
 	std::size_t Count
 )
 {
-	std::size_t Index = 0;
+	std::size_t Index = Count;
 #ifdef _MSC_VER
 	std::uint32_t Depth;
 	_BitScanReverse64(
