@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdint>
+#include <algorithm>
 
 #if defined(__x86_64__) || defined(_M_X64)
 
@@ -20,6 +22,11 @@ struct Vector2
 {
 	T X, Y;
 };
+
+static_assert(
+	sizeof(Vector2<std::uint32_t>) == sizeof(std::uint32_t) * 2,
+	"struct 'Vector2<std::uint32_t>' is not packed"
+);
 
 // qHilbert
 inline void qHilbertSerial(
