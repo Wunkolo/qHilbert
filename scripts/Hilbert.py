@@ -54,7 +54,7 @@ def GenHilbertFrames(Params):
 	# Config
 	Name = Params.get("Name", "Hilbert")
 	Width = Params.get("Width", 32)
-	Path = Params.get("Path", ".") + "/"
+	Path = "./Frames/" + Name + "/"
 	Spacing = Params.get("Spacing", 3)
 	Scale = Params.get("Scale", 2)
 	Quantum = Params.get("Quantum", 1)
@@ -102,14 +102,13 @@ def GenHilbertFrames(Params):
 		img.resize(
 			(img.width * Scale, img.height * Scale),
 			Image.NEAREST
-		).save(Path + Name + str(i).zfill(6) + ".png")
+		).save(Path + Name + '-'+ str(i).zfill(6) + ".png")
 	del draw
 
 # Serial
 GenHilbertFrames(
 	{
-		"Name": "Serial-",
-		"Path": "Serial",
+		"Name": "Serial",
 		"Quantum": 1,
 		"Scale": 6,
 	}
@@ -118,8 +117,7 @@ GenHilbertFrames(
 # SSE 4.2 / NEON
 GenHilbertFrames(
 	{
-		"Name": "SSE42-",
-		"Path": "SSE42",
+		"Name": "SSE42",
 		"Quantum": 4,
 		"Scale": 6
 	}
@@ -128,8 +126,7 @@ GenHilbertFrames(
 # AVX2
 GenHilbertFrames(
 	{
-		"Name": "AVX2-",
-		"Path": "AVX2",
+		"Name": "AVX2",
 		"Quantum": 8,
 		"Scale": 6
 	}
@@ -138,8 +135,7 @@ GenHilbertFrames(
 # AVX512
 GenHilbertFrames(
 	{
-		"Name": "AVX512-",
-		"Path": "AVX512",
+		"Name": "AVX512",
 		"Quantum": 16,
 		"Scale": 6
 	}
