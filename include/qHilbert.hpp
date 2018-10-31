@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdint>
+#include <cstddef>
 
 #if defined(__x86_64__) || defined(_M_X64)
 
