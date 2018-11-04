@@ -71,7 +71,7 @@ void d2xy(int n, int d, int* x, int* y)
 }
 
 
-const std::size_t TestWidth = 4; // Must be power-of-two
+const std::size_t TestWidth = 32; // Must be power-of-two
 std::array<std::uint32_t, TestWidth * TestWidth> Distances;
 std::array<glm::u32vec2, Distances.size()> TargetPoints;
 
@@ -82,12 +82,12 @@ void PrintCurve(
 	char Glyphs[TestWidth][TestWidth] = {};
 	for( std::size_t i = 0; i < TestWidth * TestWidth; ++i )
 	{
-		const glm::u32vec2& PrevPoint = Positions[ i - 1 ];
-		const glm::u32vec2& CurPoint  = Positions[ i     ];
-		const glm::u32vec2& NextPoint = Positions[ i + 1 ];
-		const glm::bvec2 Trailing = glm::equal(PrevPoint,CurPoint);
-		const glm::bvec2 Heading = glm::equal(CurPoint,NextPoint);
-		Glyphs[CurPoint.y][CurPoint.x] = "/|\\-"[i%4];
+		const glm::u32vec2& CurPoint = Positions[i];
+		const glm::u32vec2& In  = Positions[ i - 1 ] - CurPoint;
+		const glm::u32vec2& Out = CurPoint - Positions[ i + 1 ];
+		Glyphs[CurPoint.y][CurPoint.x] = "-|"[
+			In.y & 0b1
+		];
 	}
 
 	for( std::size_t i = 0; i < TestWidth; ++i )
