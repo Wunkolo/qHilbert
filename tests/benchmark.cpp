@@ -73,19 +73,13 @@ void d2xy(int n, int d, int* x, int* y)
 
 const std::size_t TestWidth = 64; // Must be power-of-two
 std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
-std::array<Vector2<std::uint32_t>, Distances.size()> TargetPoints;
-
-template< typename Type1, typename Type2 >
-bool Vector2Equal(const Vector2<Type1>& A, const Vector2<Type2>& B)
-{
-	return A.X == B.X && A.Y == B.Y;
-}
+std::array<glm::u32vec2, Distances.size()> TargetPoints;
 
 std::chrono::nanoseconds WikiBench()
 {
 	/// Wikipedia
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
-	std::array<Vector2<int>, Distances.size()> PointsInt;
+	std::array<glm::u32vec2, Distances.size()> PointsInt;
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
 		auto WikiProc =
@@ -93,7 +87,12 @@ std::chrono::nanoseconds WikiBench()
 			{
 				for( std::size_t i = 0; i < Distances.size(); ++i )
 				{
-					d2xy(TestWidth, Distances[i], &PointsInt[i].X, &PointsInt[i].Y);
+					d2xy(
+						TestWidth,
+						Distances[i],
+						reinterpret_cast<int*>(&PointsInt[i].x),
+						reinterpret_cast<int*>(&PointsInt[i].y)
+					);
 				}
 			};
 		Duration += Measure<>::Duration(WikiProc);
@@ -105,8 +104,7 @@ std::chrono::nanoseconds WikiBench()
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
-				PointsInt.begin(),
-				Vector2Equal<std::uint32_t, int>
+				PointsInt.begin()
 			)
 				? "PASS"
 				: "FAIL")
@@ -118,7 +116,7 @@ std::chrono::nanoseconds qHilbertBench()
 {
 	/// qHilbert
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
-	std::array<Vector2<std::uint32_t>, Distances.size()> Positions;
+	std::array<glm::u32vec2, Distances.size()> Positions;
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
 		Duration += Measure<>::Duration(
@@ -136,8 +134,7 @@ std::chrono::nanoseconds qHilbertBench()
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
-				Positions.begin(),
-				Vector2Equal<std::uint32_t, std::uint32_t>
+				Positions.begin()
 			)
 				? "PASS"
 				: "FAIL")
@@ -156,8 +153,8 @@ int main()
 		d2xy(
 			TestWidth,
 			Distances[i],
-			reinterpret_cast<int*>(&TargetPoints[i].X),
-			reinterpret_cast<int*>(&TargetPoints[i].Y)
+			reinterpret_cast<int*>(&TargetPoints[i].x),
+			reinterpret_cast<int*>(&TargetPoints[i].y)
 		);
 	}
 

@@ -23,11 +23,11 @@
 void qHilbertSerial(
 	std::size_t Width, // Must be a power of 2
 	std::uint32_t Distance,
-	Vector2<std::uint32_t>& Position
+	glm::u32vec2& Position
 )
 {
 	std::size_t CurDistance = Distance;
-	Position.X = Position.Y = 0;
+	Position.x = Position.y = 0;
 	for( std::size_t Level = 1; Level < Width; Level *= 2 )
 	{
 		// find out what quadrant T is in
@@ -38,15 +38,15 @@ void qHilbertSerial(
 		{
 			if( RegionX == 1 )
 			{
-				Position.X = static_cast<std::uint32_t>(Level - 1 - Position.X);
-				Position.Y = static_cast<std::uint32_t>(Level - 1 - Position.Y);
+				Position.x = static_cast<std::uint32_t>(Level - 1 - Position.x);
+				Position.y = static_cast<std::uint32_t>(Level - 1 - Position.y);
 			}
 			//Swap x and y
-			std::swap(Position.X, Position.Y);
+			std::swap(Position.x, Position.y);
 		}
 		// "Move" the XY ahead where needed
-		Position.X += static_cast<std::uint32_t>(Level * RegionX);
-		Position.Y += static_cast<std::uint32_t>(Level * RegionY);
+		Position.x += static_cast<std::uint32_t>(Level * RegionX);
+		Position.y += static_cast<std::uint32_t>(Level * RegionY);
 		CurDistance /= 4;
 	}
 }
@@ -54,7 +54,7 @@ void qHilbertSerial(
 void qHilbert(
 	std::size_t Width, // Must be power of 2
 	const std::uint32_t Distances[],
-	Vector2<std::uint32_t> Positions[],
+	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {

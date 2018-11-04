@@ -33,6 +33,11 @@ target_include_directories(
 	PUBLIC
 	include
 )
+target_link_libraries(
+	qHilbert
+	PUBLIC
+	glm
+)
 set_target_properties(
 	qHilbert
 	PROPERTIES
