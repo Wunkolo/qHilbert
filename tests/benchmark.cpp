@@ -79,16 +79,24 @@ void PrintCurve(
 	const std::array<glm::u32vec2, Distances.size()>& Positions
 )
 {
-	char Glyphs[TestWidth * TestWidth];
-	for( std::size_t i = 1; i < TestWidth * TestWidth - 1; ++i )
+	char Glyphs[TestWidth][TestWidth] = {};
+	for( std::size_t i = 0; i < TestWidth * TestWidth; ++i )
 	{
 		const glm::u32vec2& PrevPoint = Positions[ i - 1 ];
 		const glm::u32vec2& CurPoint  = Positions[ i     ];
 		const glm::u32vec2& NextPoint = Positions[ i + 1 ];
 		const glm::bvec2 Trailing = glm::equal(PrevPoint,CurPoint);
 		const glm::bvec2 Heading = glm::equal(CurPoint,NextPoint);
+		Glyphs[CurPoint.y][CurPoint.x] = "/|\\-"[i%4];
+	}
 
-		std::cout << CurPoint.x << '|' << CurPoint.y << '\n';
+	for( std::size_t i = 0; i < TestWidth; ++i )
+	{
+		std::printf(
+			"|%.*s|\n",
+			TestWidth,
+			Glyphs[i]
+		);
 	}
 }
 
