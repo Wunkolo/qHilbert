@@ -1,11 +1,6 @@
 cmake_minimum_required( VERSION 3.2.2 )
 project( qHilbert )
 
-### Standard
-set( CMAKE_CXX_STANDARD 14 )
-set( CMAKE_CXX_STANDARD_REQUIRED ON )
-set( CMAKE_CXX_EXTENSIONS OFF )
-
 ### Verbosity
 set( CMAKE_COLOR_MAKEFILE ON )
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
@@ -25,6 +20,25 @@ endif()
 option( GLM_TEST_ENABLE "" OFF )
 add_subdirectory(
 	dependencies/glm
+)
+
+### Targets
+add_library(
+	qHilbert
+	STATIC
+	source/qHilbert.cpp
+)
+target_include_directories(
+	qHilbert
+	PUBLIC
+	include
+)
+set_target_properties(
+	qHilbert
+	PROPERTIES
+	CXX_STANDARD 17
+	CXX_STANDARD_REQUIRED YES
+	CXX_EXTENSIONS ON
 )
 
 ### Tests
