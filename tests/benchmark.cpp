@@ -71,9 +71,26 @@ void d2xy(int n, int d, int* x, int* y)
 }
 
 
-const std::size_t TestWidth = 64; // Must be power-of-two
-std::array<std::uint32_t, TestWidth * TestWidth - 1> Distances;
+const std::size_t TestWidth = 4; // Must be power-of-two
+std::array<std::uint32_t, TestWidth * TestWidth> Distances;
 std::array<glm::u32vec2, Distances.size()> TargetPoints;
+
+void PrintCurve(
+	const std::array<glm::u32vec2, Distances.size()>& Positions
+)
+{
+	char Glyphs[TestWidth * TestWidth];
+	for( std::size_t i = 1; i < TestWidth * TestWidth - 1; ++i )
+	{
+		const glm::u32vec2& PrevPoint = Positions[ i - 1 ];
+		const glm::u32vec2& CurPoint  = Positions[ i     ];
+		const glm::u32vec2& NextPoint = Positions[ i + 1 ];
+		const glm::bvec2 Trailing = glm::equal(PrevPoint,CurPoint);
+		const glm::bvec2 Heading = glm::equal(CurPoint,NextPoint);
+
+		std::cout << CurPoint.x << '|' << CurPoint.y << '\n';
+	}
+}
 
 std::chrono::nanoseconds WikiBench()
 {
@@ -97,6 +114,7 @@ std::chrono::nanoseconds WikiBench()
 			};
 		Duration += Measure<>::Duration(WikiProc);
 	}
+	PrintCurve(PointsInt);
 	std::cout
 		<< "d2xy\t"
 		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns" << std::endl;
@@ -104,7 +122,8 @@ std::chrono::nanoseconds WikiBench()
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
-				PointsInt.begin()
+				PointsInt.begin(),
+				PointsInt.end()
 			)
 				? "PASS"
 				: "FAIL")
@@ -127,6 +146,7 @@ std::chrono::nanoseconds qHilbertBench()
 			Distances.size()
 		);
 	}
+	PrintCurve(Positions);
 	std::cout
 		<< "qHilbert\t"
 		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns" << std::endl;
@@ -134,7 +154,8 @@ std::chrono::nanoseconds qHilbertBench()
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
-				Positions.begin()
+				Positions.begin(),
+				Positions.end()
 			)
 				? "PASS"
 				: "FAIL")
