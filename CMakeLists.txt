@@ -8,7 +8,6 @@ set( CMAKE_CXX_EXTENSIONS OFF )
 
 ### Verbosity
 set( CMAKE_COLOR_MAKEFILE ON )
-set( CMAKE_VERBOSE_MAKEFILE ON )
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 ### Optimizations
@@ -19,6 +18,14 @@ elseif( CMAKE_COMPILER_IS_GNUCXX )
 	add_compile_options( -Wall )
 	add_compile_options( -Wextra )
 endif()
+
+### Libraries
+
+## GLM
+option( GLM_TEST_ENABLE "" OFF )
+add_subdirectory(
+	dependencies/glm
+)
 
 ### Tests
 enable_testing()
