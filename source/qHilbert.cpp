@@ -76,11 +76,18 @@ inline void qHilbert<SIMDSize::Serial>(
 		glm::u32vec2& CurPosition = Positions[i];
 		CurPosition = glm::u32vec2(0);
 		std::size_t CurLevel = 1;
+		// precompute all graycodes up-front
+		// Every even bit is from the distance/index variable
+		// Every odd bit is a xor between the current odd bit and the next even
+		// bit over
+		// Basically a SWAR method to get a vector of 2-bit gray codes
+		std::uint32_t RegionMask = (CurDistance ^ (CurDistance >> 1)) & 0x55555555;
+		RegionMask |= CurDistance & 0xAAAAAAAA;
 		for( std::size_t j = 0; j < Depth; ++j )
 		{
 			// find out what quadrant T is in
-			const std::uint8_t RegionX = 0b1 & (CurDistance / 2);
-			const std::uint8_t RegionY = 0b1 & (CurDistance ^ RegionX);
+			const std::uint8_t RegionX = 0b1 & RegionMask >> 1;
+			const std::uint8_t RegionY = 0b1 & RegionMask;
 			// Add a flip to our current XY
 			if( RegionY == 0 )
 			{
@@ -95,7 +102,7 @@ inline void qHilbert<SIMDSize::Serial>(
 			// "Move" the XY ahead where needed
 			CurPosition.x += static_cast<std::uint32_t>(CurLevel * RegionX);
 			CurPosition.y += static_cast<std::uint32_t>(CurLevel * RegionY);
-			CurDistance /= 4;
+			RegionMask >>= 2;
 			CurLevel <<= 1;
 		}
 	}
