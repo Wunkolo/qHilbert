@@ -72,39 +72,53 @@ inline void qHilbert<SIMDSize::Serial>(
 	const std::size_t Depth = Log2(Size);
 	for( std::size_t i = 0; i < Count; ++i )
 	{
-		std::uint32_t CurDistance = Distances[i];
-		glm::u32vec2& CurPosition = Positions[i];
-		CurPosition = glm::u32vec2(0);
-		std::size_t CurLevel = 1;
-		// precompute all graycodes up-front
+		const std::uint32_t CurDistance = Distances[i];
+
+		// Precompute all graycodes up-front
 		// Every even bit is from the distance/index variable
 		// Every odd bit is a xor between the current odd bit and the next even
 		// bit over
 		// Basically a SWAR method to get a vector of 2-bit gray codes
-		std::uint32_t RegionMask = (CurDistance ^ (CurDistance >> 1)) & 0x55555555;
-		RegionMask |= CurDistance & 0xAAAAAAAA;
+		glm::u32vec2 RegionVec = glm::u32vec2(
+			// Even bits
+			(CurDistance & 0xAAAAAAAA) >> 1,
+			// Odd bits
+			(CurDistance ^ (CurDistance >> 1)) & 0x55555555
+		);
+
+		// CurLevel is always a power of two
+		std::uint32_t CurLevel = 1;
+		glm::u32vec2 CurPosition = {};
 		for( std::size_t j = 0; j < Depth; ++j )
 		{
-			// find out what quadrant T is in
-			const std::uint8_t RegionX = 0b1 & RegionMask >> 1;
-			const std::uint8_t RegionY = 0b1 & RegionMask;
+			// Find out what quadrant T is in
+			const glm::u32vec2 CurRegion = 1U & RegionVec;
 			// Add a flip to our current XY
-			if( RegionY == 0 )
+			if( CurRegion.y == 0 )
 			{
-				if( RegionX == 1 )
+				if( CurRegion.x == 1 )
 				{
-					CurPosition.x = static_cast<std::uint32_t>(CurLevel - 1 - CurPosition.x);
-					CurPosition.y = static_cast<std::uint32_t>(CurLevel - 1 - CurPosition.y);
+					// This addition only happens in the 0b10 case
+					CurPosition.x = static_cast<std::uint32_t>(
+						CurLevel - 1 - CurPosition.x
+					);
+					CurPosition.y = static_cast<std::uint32_t>(
+						CurLevel - 1 - CurPosition.y
+					);
 				}
-				//Swap x and y
-				std::swap(CurPosition.x, CurPosition.y);
+				// Swap x and y
+				std::swap( CurPosition.x, CurPosition.y );
 			}
 			// "Move" the XY ahead where needed
-			CurPosition.x += static_cast<std::uint32_t>(CurLevel * RegionX);
-			CurPosition.y += static_cast<std::uint32_t>(CurLevel * RegionY);
-			RegionMask >>= 2;
+			// CurRegion is always 0 or 1, so -CurRegion is always going to be
+			// 0x00000000 or 0xFFFFFFFF and ANDing this with CurLevel simulates
+			// multiplying CurLevel by 0 or 1. So this is essentially a much
+			// faster "Select" function using an And-Not
+			CurPosition |= (-CurRegion) & CurLevel;
+			RegionVec >>= 2;
 			CurLevel <<= 1;
 		}
+		Positions[i] = CurPosition;
 	}
 }
 
