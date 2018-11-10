@@ -142,7 +142,7 @@ inline void qHilbert<SIMDSize::Size4>(
 	const std::size_t Depth = __builtin_clz(Size) - 1;
 #endif
 #ifdef __SSE4_2__
-#pragma message "SSE4.2 Enabled"
+// #pragma message "SSE4.2 Enabled"
 	/// 4 at a time ( SSE4.2 )
 	for( ; i < Count / 4; ++i )
 	{
@@ -268,7 +268,7 @@ inline void qHilbert<SIMDSize::Size4>(
 	/// ARM ( NEON )
 
 #ifdef __ARM_NEON
-#pragma message "NEON Enabled"
+// #pragma message "NEON Enabled"
 	/// 4 at a time ( NEON )
 	for( ; i < Count / 4; ++i )
 	{
@@ -377,7 +377,7 @@ inline void qHilbert<SIMDSize::Size8>(
 {
 	std::size_t i = 0;
 #ifdef __AVX2__
-#pragma message "AVX2 Enabled"
+// #pragma message "AVX2 Enabled"
 #ifdef _MSC_VER
 	std::uint32_t Depth;
 	_BitScanReverse64(
@@ -539,7 +539,7 @@ inline void qHilbert<SIMDSize::Size8>(
 
 
 #ifdef __AVX512F__
-#pragma message "AVX512F Enabled"
+// #pragma message "AVX512F Enabled"
 // Sixteen at a time
 template<>
 inline void qHilbert<SIMDSize::Size16>(
