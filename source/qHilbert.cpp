@@ -61,6 +61,58 @@ inline void qHilbert(
 }
 
 // Serial
+
+#ifdef __BMI2__ // BMI2
+template<>
+inline void qHilbert<SIMDSize::Serial>(
+	std::size_t Size, // Must be power of 2
+	const std::uint32_t Distances[],
+	glm::u32vec2 Positions[],
+	std::size_t Count
+)
+{
+	const std::size_t Depth = Log2(Size);
+	for( std::size_t i = 0; i < Count; ++i )
+	{
+		// Precompute all graycodes up-front
+		// Every even bit is from the distance/index variable
+		// Every odd bit is a xor between the current odd bit and the next even
+		// bit over
+		// Basically a SWAR method to get a vector of 2-bit gray codes
+		const std::uint32_t CurDistance = Distances[i];
+
+		// CurLevel is always a power of two
+		glm::u32vec2 CurPosition = {};
+		std::uint32_t State = 0;
+		for( std::intmax_t j = Depth-1; j >= 0; --j )
+		{
+			const std::uint32_t Row = 4 * State | _bextr_u32(
+				CurDistance,
+				j * 2,
+				2
+			);
+			CurPosition.x <<= 1;
+			CurPosition.x |= _bextr_u32(
+				0x936C,
+				Row,
+				1
+			);
+			CurPosition.y <<= 1;
+			CurPosition.y |= _bextr_u32(
+				0x39C6,
+				Row,
+				1
+			);
+			State = _bextr_u32(
+				0x3E6B94C1,
+				2 * Row,
+				2
+			);
+		}
+		Positions[i] = CurPosition;
+	}
+}
+#else // Native
 template<>
 inline void qHilbert<SIMDSize::Serial>(
 	std::size_t Size, // Must be power of 2
@@ -121,6 +173,7 @@ inline void qHilbert<SIMDSize::Serial>(
 		Positions[i] = CurPosition;
 	}
 }
+#endif
 
 // Four at a time
 template<>
