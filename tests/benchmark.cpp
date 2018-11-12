@@ -27,7 +27,9 @@ struct Measure
 		const auto Start = std::chrono::high_resolution_clock::now();
 		
 		// Run function, perfect-forward arguments
-		std::forward<decltype(Func)>(Func)(std::forward<ArgsT>(Arguments)...);
+		std::forward<decltype(Func)>(Func)(
+			std::forward<ArgsT>(Arguments)...
+		);
 
 		// Return executation time.
 		return std::chrono::duration_cast<TimeT>(
@@ -72,21 +74,22 @@ std::chrono::nanoseconds WikiBench()
 	/// Wikipedia
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	std::array<glm::u32vec2, Distances.size()> PointsInt;
+	const auto WikiProc =
+	[&PointsInt]()
+	{
+		for( std::size_t i = 0; i < Distances.size(); ++i )
+			{
+				d2xy(
+					TestWidth,
+					Distances[i],
+					reinterpret_cast<int*>(&PointsInt[i].x),
+					reinterpret_cast<int*>(&PointsInt[i].y)
+				);
+			}
+		};
+
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
-		auto WikiProc =
-			[&PointsInt]()
-			{
-				for( std::size_t i = 0; i < Distances.size(); ++i )
-				{
-					d2xy(
-						TestWidth,
-						Distances[i],
-						reinterpret_cast<int*>(&PointsInt[i].x),
-						reinterpret_cast<int*>(&PointsInt[i].y)
-					);
-				}
-			};
 		Duration += Measure<>::Duration(WikiProc);
 	}
 	PrintCurve(PointsInt);
@@ -111,15 +114,20 @@ std::chrono::nanoseconds qHilbertBench()
 	/// qHilbert
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	std::array<glm::u32vec2, Distances.size()> Positions;
+	const auto qHilbertProc = 
+		[&Positions]()
+		{
+			qHilbert(
+				TestWidth,
+				Distances.data(),
+				Positions.data(),
+				Distances.size()
+			);
+		};
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
-		Duration += Measure<>::Duration(
-			qHilbert,
-			TestWidth,
-			Distances.data(),
-			Positions.data(),
-			Distances.size()
-		);
+
+		Duration += Measure<>::Duration(qHilbertProc);
 	}
 	PrintCurve(Positions);
 	std::cout
