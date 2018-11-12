@@ -62,7 +62,7 @@ inline void qHilbert(
 
 // Serial
 
-#ifdef __BMI2__ // BMI2
+#if defined(__BMI2__)// BMI2
 template<>
 inline void qHilbert<SIMDSize::Serial>(
 	std::size_t Size, // Must be power of 2
@@ -74,41 +74,29 @@ inline void qHilbert<SIMDSize::Serial>(
 	const std::size_t Depth = Log2(Size);
 	for( std::size_t i = 0; i < Count; ++i )
 	{
-		// Precompute all graycodes up-front
-		// Every even bit is from the distance/index variable
-		// Every odd bit is a xor between the current odd bit and the next even
-		// bit over
-		// Basically a SWAR method to get a vector of 2-bit gray codes
-		const std::uint32_t CurDistance = Distances[i];
+		std::uint32_t s = Distances[i];
 
-		// CurLevel is always a power of two
-		std::uint64_t CurPosition = 0;
-		std::uint32_t State = 0;
-		for( std::intmax_t j = Depth-1; j >= 0; --j )
-		{
-			const std::uint32_t Row = 4 * State | _bextr_u32(
-				CurDistance,
-				j * 2,
-				2
-			);
-			CurPosition <<= 1;
-			CurPosition |= _bextr_u32(
-				0x936C,
-				Row,
-				1
-			);
-			CurPosition |= _bextr_u64(
-				0x39C6,
-				Row,
-				1
-			) << 32U;
-			State = _bextr_u32(
-				0x3E6B94C1,
-				2 * Row,
-				2
-			);
-		}
-		*reinterpret_cast<std::uint64_t*>(&Positions[i]) = CurPosition;
+		s = s | 0x55555555 << 2 * Depth;
+		std::uint32_t sr = (s >> 1) & 0x55555555;
+		std::uint32_t cs = ((s & 0x55555555) + sr) ^ 0x55555555;
+
+		cs = cs ^ ( cs >> 2);
+		cs = cs ^ ( cs >> 4);
+		cs = cs ^ ( cs >> 8);
+		cs = cs ^ ( cs >> 16);
+		const std::uint32_t Swap = cs & 0x55555555;
+		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
+
+		std::uint32_t t = (s & Swap) ^ Comp;
+		s = s ^ sr ^ t ^ (t << 1);
+		s = s & ( ( 1 << 2*Depth ) - 1 );
+
+		t = (s ^ ( s >> 1)) & 0x22222222; s = s ^ t ^ ( t << 1);
+		t = (s ^ ( s >> 2)) & 0x0C0C0C0C; s = s ^ t ^ ( t << 2);
+		t = (s ^ ( s >> 4)) & 0x00F000F0; s = s ^ t ^ ( t << 4);
+		t = (s ^ ( s >> 8)) & 0x0000FF00; s = s ^ t ^ ( t << 8);
+		Positions[i].x = s >> 16;
+		Positions[i].y = s & 0xFFFF;
 	}
 }
 #else // Native
@@ -123,53 +111,30 @@ inline void qHilbert<SIMDSize::Serial>(
 	const std::size_t Depth = Log2(Size);
 	for( std::size_t i = 0; i < Count; ++i )
 	{
-		const std::uint32_t CurDistance = Distances[i];
+		// Parallel prefix method, from Hacker's Delight, Pg. 365
+		std::uint32_t s = Distances[i];
 
-		// Precompute all graycodes up-front
-		// Every even bit is from the distance/index variable
-		// Every odd bit is a xor between the current odd bit and the next even
-		// bit over
-		// Basically a SWAR method to get a vector of 2-bit gray codes
-		glm::u32vec2 RegionVec = glm::u32vec2(
-			// Even bits
-			(CurDistance & 0xAAAAAAAA) >> 1,
-			// Odd bits
-			(CurDistance ^ (CurDistance >> 1)) & 0x55555555
-		);
+		s = s | 0x55555555 << 2 * Depth;
+		std::uint32_t sr = (s >> 1) & 0x55555555;
+		std::uint32_t cs = ((s & 0x55555555) + sr) ^ 0x55555555;
 
-		// CurLevel is always a power of two
-		std::uint32_t CurLevel = 1;
-		glm::u32vec2 CurPosition = {};
-		for( std::size_t j = 0; j < Depth; ++j )
-		{
-			// Find out what quadrant T is in
-			const glm::u32vec2 CurRegion = 1U & RegionVec;
-			// Add a flip to our current XY
-			if( CurRegion.y == 0 )
-			{
-				if( CurRegion.x == 1 )
-				{
-					// This addition only happens in the 0b10 case
-					CurPosition.x = static_cast<std::uint32_t>(
-						CurLevel - 1 - CurPosition.x
-					);
-					CurPosition.y = static_cast<std::uint32_t>(
-						CurLevel - 1 - CurPosition.y
-					);
-				}
-				// Swap x and y
-				std::swap( CurPosition.x, CurPosition.y );
-			}
-			// "Move" the XY ahead where needed
-			// CurRegion is always 0 or 1, so -CurRegion is always going to be
-			// 0x00000000 or 0xFFFFFFFF and ANDing this with CurLevel simulates
-			// multiplying CurLevel by 0 or 1. So this is essentially a much
-			// faster "Select" function using an And-Not
-			CurPosition |= (-CurRegion) & CurLevel;
-			RegionVec >>= 2;
-			CurLevel <<= 1;
-		}
-		Positions[i] = CurPosition;
+		cs = cs ^ ( cs >> 2);
+		cs = cs ^ ( cs >> 4);
+		cs = cs ^ ( cs >> 8);
+		cs = cs ^ ( cs >> 16);
+		const std::uint32_t Swap = cs & 0x55555555;
+		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
+
+		std::uint32_t t = (s & Swap) ^ Comp;
+		s = s ^ sr ^ t ^ (t << 1);
+		s = s & ( ( 1 << 2*Depth ) - 1 );
+
+		t = (s ^ ( s >> 1)) & 0x22222222; s = s ^ t ^ ( t << 1);
+		t = (s ^ ( s >> 2)) & 0x0C0C0C0C; s = s ^ t ^ ( t << 2);
+		t = (s ^ ( s >> 4)) & 0x00F000F0; s = s ^ t ^ ( t << 4);
+		t = (s ^ ( s >> 8)) & 0x0000FF00; s = s ^ t ^ ( t << 8);
+		Positions[i].x = s >> 16;
+		Positions[i].y = s & 0xFFFF;
 	}
 }
 #endif
@@ -194,7 +159,7 @@ inline void qHilbert<SIMDSize::Size4>(
 	const std::size_t Depth = __builtin_clz(Size) - 1;
 #endif
 #ifdef __SSE4_2__
-// #pragma message "SSE4.2 Enabled"
+	// #pragma message "SSE4.2 Enabled"
 	/// 4 at a time ( SSE4.2 )
 	for( ; i < Count / 4; ++i )
 	{
@@ -320,7 +285,7 @@ inline void qHilbert<SIMDSize::Size4>(
 	/// ARM ( NEON )
 
 #ifdef __ARM_NEON
-// #pragma message "NEON Enabled"
+	// #pragma message "NEON Enabled"
 	/// 4 at a time ( NEON )
 	for( ; i < Count / 4; ++i )
 	{
@@ -429,7 +394,7 @@ inline void qHilbert<SIMDSize::Size8>(
 {
 	std::size_t i = 0;
 #ifdef __AVX2__
-// #pragma message "AVX2 Enabled"
+	// #pragma message "AVX2 Enabled"
 #ifdef _MSC_VER
 	std::uint32_t Depth;
 	_BitScanReverse64(

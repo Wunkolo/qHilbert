@@ -139,7 +139,7 @@ std::chrono::nanoseconds qHilbertBench()
 				TargetPoints.end(),
 				Positions.begin(),
 				Positions.end()
-			) ? "\e[0;32mPASS\e[0m" : "\e[0;31FAIL\e[0m")
+			) ? "\e[0;32mPASS\e[0m" : "\e[0;31mFAIL\e[0m")
 		<< std::endl;
 	return Duration;
 }
