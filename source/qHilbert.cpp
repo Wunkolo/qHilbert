@@ -82,7 +82,7 @@ inline void qHilbert<SIMDSize::Serial>(
 		const std::uint32_t CurDistance = Distances[i];
 
 		// CurLevel is always a power of two
-		glm::u32vec2 CurPosition = {};
+		std::uint64_t CurPosition = 0;
 		std::uint32_t State = 0;
 		for( std::intmax_t j = Depth-1; j >= 0; --j )
 		{
@@ -91,25 +91,24 @@ inline void qHilbert<SIMDSize::Serial>(
 				j * 2,
 				2
 			);
-			CurPosition.x <<= 1;
-			CurPosition.x |= _bextr_u32(
+			CurPosition <<= 1;
+			CurPosition |= _bextr_u32(
 				0x936C,
 				Row,
 				1
 			);
-			CurPosition.y <<= 1;
-			CurPosition.y |= _bextr_u32(
+			CurPosition |= _bextr_u64(
 				0x39C6,
 				Row,
 				1
-			);
+			) << 32U;
 			State = _bextr_u32(
 				0x3E6B94C1,
 				2 * Row,
 				2
 			);
 		}
-		Positions[i] = CurPosition;
+		*reinterpret_cast<std::uint64_t*>(&Positions[i]) = CurPosition;
 	}
 }
 #else // Native
@@ -778,4 +777,38 @@ void qHilbert(
 		Positions,
 		Count
 	);
+}
+
+
+// Wikipedia implementation
+//rotate/flip a quadrant appropriately
+void rot(int n, int* x, int* y, int rx, int ry)
+{
+	if( ry == 0 )
+	{
+		if( rx == 1 )
+		{
+			*x = n - 1 - *x;
+			*y = n - 1 - *y;
+		}
+		//Swap x and y
+		int t = *x;
+		*x = *y;
+		*y = t;
+	}
+}
+
+void d2xy(int n, int d, int* x, int* y)
+{
+	int rx, ry, s, t = d;
+	*x = *y = 0;
+	for( s = 1; s < n; s *= 2 )
+	{
+		rx = 1 & (t / 2);
+		ry = 1 & (t ^ rx);
+		rot(s, x, y, rx, ry);
+		*x += s * rx;
+		*y += s * ry;
+		t /= 4;
+	}
 }
