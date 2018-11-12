@@ -90,7 +90,6 @@ inline void qHilbert<SIMDSize::Serial>(
 
 		std::uint32_t t = (s & Swap) ^ Comp;
 		s ^= sr ^ t ^ (t << 1);
-		s &= ( ( 1 << 2 * Depth ) - 1 );
 
 		Positions[i].x = _pext_u32( s, 0xAAAA );
 		Positions[i].y = _pext_u32( s, 0x5555 );
