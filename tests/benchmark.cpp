@@ -78,15 +78,15 @@ std::chrono::nanoseconds WikiBench()
 	[&PointsInt]()
 	{
 		for( std::size_t i = 0; i < Distances.size(); ++i )
-			{
-				d2xy(
-					TestWidth,
-					Distances[i],
-					reinterpret_cast<int*>(&PointsInt[i].x),
-					reinterpret_cast<int*>(&PointsInt[i].y)
-				);
-			}
-		};
+		{
+			d2xy(
+				TestWidth,
+				Distances[i],
+				reinterpret_cast<int*>(&PointsInt[i].x),
+				reinterpret_cast<int*>(&PointsInt[i].y)
+			);
+		}
+	};
 
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
@@ -95,16 +95,15 @@ std::chrono::nanoseconds WikiBench()
 	PrintCurve(PointsInt);
 	std::cout
 		<< "d2xy\t"
-		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns" << std::endl;
-	std::cout
+		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT)
+		<< "ns"
+		<< std::endl
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
 				PointsInt.begin(),
 				PointsInt.end()
-			)
-				? "PASS"
-				: "FAIL")
+			) ? "\e[0;32mPASS\e[0m" : "\e[0;31FAIL\e[0m")
 		<< std::endl;
 	return Duration;
 }
@@ -115,33 +114,31 @@ std::chrono::nanoseconds qHilbertBench()
 	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	std::array<glm::u32vec2, Distances.size()> Positions;
 	const auto qHilbertProc = 
-		[&Positions]()
-		{
-			qHilbert(
-				TestWidth,
-				Distances.data(),
-				Positions.data(),
-				Distances.size()
-			);
-		};
+	[&Positions]()
+	{
+		qHilbert(
+			TestWidth,
+			Distances.data(),
+			Positions.data(),
+			Distances.size()
+		);
+	};
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
-
 		Duration += Measure<>::Duration(qHilbertProc);
 	}
 	PrintCurve(Positions);
 	std::cout
 		<< "qHilbert\t"
-		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT) << "ns" << std::endl;
-	std::cout
+		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT)
+		<< "ns"
+		<< std::endl
 		<< (std::equal(
 				TargetPoints.begin(),
 				TargetPoints.end(),
 				Positions.begin(),
 				Positions.end()
-			)
-				? "PASS"
-				: "FAIL")
+			) ? "\e[0;32mPASS\e[0m" : "\e[0;31FAIL\e[0m")
 		<< std::endl;
 	return Duration;
 }
@@ -165,9 +162,14 @@ int main()
 	const std::chrono::nanoseconds WikiTime = WikiBench();
 	const std::chrono::nanoseconds qHilbertTime = qHilbertBench();
 
+	const std::double_t Speedup = WikiTime.count()
+		/ static_cast<std::double_t>(qHilbertTime.count());
+
 	std::cout
 		<< "Speedup: "
-		<< WikiTime.count() / static_cast<std::double_t>(qHilbertTime.count())
+		<< (Speedup > 1.0 ? "\e[0;32m":"\e[0;31m")
+		<< Speedup
+		<< "\e[0m"
 		<< std::endl;
 
 	return EXIT_SUCCESS;
