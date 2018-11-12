@@ -75,28 +75,25 @@ inline void qHilbert<SIMDSize::Serial>(
 	for( std::size_t i = 0; i < Count; ++i )
 	{
 		std::uint32_t s = Distances[i];
+		s |= 0x55555555 << 2 * Depth;
 
-		s = s | 0x55555555 << 2 * Depth;
-		std::uint32_t sr = (s >> 1) & 0x55555555;
+		const std::uint32_t sr = (s >> 1) & 0x55555555;
 		std::uint32_t cs = ((s & 0x55555555) + sr) ^ 0x55555555;
 
-		cs = cs ^ ( cs >> 2);
-		cs = cs ^ ( cs >> 4);
-		cs = cs ^ ( cs >> 8);
-		cs = cs ^ ( cs >> 16);
+		cs ^= ( cs >> 2);
+		cs ^= ( cs >> 4);
+		cs ^= ( cs >> 8);
+		cs ^= ( cs >> 16);
+
 		const std::uint32_t Swap = cs & 0x55555555;
 		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
 
 		std::uint32_t t = (s & Swap) ^ Comp;
-		s = s ^ sr ^ t ^ (t << 1);
-		s = s & ( ( 1 << 2*Depth ) - 1 );
+		s ^= sr ^ t ^ (t << 1);
+		s &= ( ( 1 << 2 * Depth ) - 1 );
 
-		t = (s ^ ( s >> 1)) & 0x22222222; s = s ^ t ^ ( t << 1);
-		t = (s ^ ( s >> 2)) & 0x0C0C0C0C; s = s ^ t ^ ( t << 2);
-		t = (s ^ ( s >> 4)) & 0x00F000F0; s = s ^ t ^ ( t << 4);
-		t = (s ^ ( s >> 8)) & 0x0000FF00; s = s ^ t ^ ( t << 8);
-		Positions[i].x = s >> 16;
-		Positions[i].y = s & 0xFFFF;
+		Positions[i].x = _pext_u32( s, 0xAAAA );
+		Positions[i].y = _pext_u32( s, 0x5555 );
 	}
 }
 #else // Native
@@ -113,26 +110,28 @@ inline void qHilbert<SIMDSize::Serial>(
 	{
 		// Parallel prefix method, from Hacker's Delight, Pg. 365
 		std::uint32_t s = Distances[i];
+		s |= 0x55555555 << 2 * Depth;
 
-		s = s | 0x55555555 << 2 * Depth;
-		std::uint32_t sr = (s >> 1) & 0x55555555;
+		const std::uint32_t sr = (s >> 1) & 0x55555555;
 		std::uint32_t cs = ((s & 0x55555555) + sr) ^ 0x55555555;
 
-		cs = cs ^ ( cs >> 2);
-		cs = cs ^ ( cs >> 4);
-		cs = cs ^ ( cs >> 8);
-		cs = cs ^ ( cs >> 16);
+		cs ^= ( cs >> 2);
+		cs ^= ( cs >> 4);
+		cs ^= ( cs >> 8);
+		cs ^= ( cs >> 16);
+
 		const std::uint32_t Swap = cs & 0x55555555;
 		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
 
 		std::uint32_t t = (s & Swap) ^ Comp;
-		s = s ^ sr ^ t ^ (t << 1);
-		s = s & ( ( 1 << 2*Depth ) - 1 );
+		s ^= sr ^ t ^ (t << 1);
+		s &= ( ( 1 << 2 * Depth ) - 1 );
 
-		t = (s ^ ( s >> 1)) & 0x22222222; s = s ^ t ^ ( t << 1);
-		t = (s ^ ( s >> 2)) & 0x0C0C0C0C; s = s ^ t ^ ( t << 2);
-		t = (s ^ ( s >> 4)) & 0x00F000F0; s = s ^ t ^ ( t << 4);
-		t = (s ^ ( s >> 8)) & 0x0000FF00; s = s ^ t ^ ( t << 8);
+		t = (s ^ ( s >> 1)) & 0x22222222; s ^= t ^ ( t << 1 );
+		t = (s ^ ( s >> 2)) & 0x0C0C0C0C; s ^= t ^ ( t << 2 );
+		t = (s ^ ( s >> 4)) & 0x00F000F0; s ^= t ^ ( t << 4 );
+		t = (s ^ ( s >> 8)) & 0x0000FF00; s ^= t ^ ( t << 8 );
+
 		Positions[i].x = s >> 16;
 		Positions[i].y = s & 0xFFFF;
 	}
