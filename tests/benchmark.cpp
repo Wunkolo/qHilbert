@@ -15,7 +15,7 @@
 
 #include <qHilbert.hpp>
 
-#define TRIALCOUNT 10'000
+#define TRIALCOUNT 10
 
 template< typename TimeT = std::chrono::nanoseconds >
 struct Measure
@@ -72,7 +72,6 @@ void PrintCurve(
 std::chrono::nanoseconds WikiBench()
 {
 	/// Wikipedia
-	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	std::array<glm::u32vec2, Distances.size()> PointsInt;
 	const auto WikiProc =
 	[&PointsInt]()
@@ -88,6 +87,7 @@ std::chrono::nanoseconds WikiBench()
 		}
 	};
 
+	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
 		Duration += Measure<>::Duration(WikiProc);
@@ -111,7 +111,6 @@ std::chrono::nanoseconds WikiBench()
 std::chrono::nanoseconds qHilbertBench()
 {
 	/// qHilbert
-	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	std::array<glm::u32vec2, Distances.size()> Positions;
 	const auto qHilbertProc = 
 	[&Positions]()
@@ -123,6 +122,8 @@ std::chrono::nanoseconds qHilbertBench()
 			Distances.size()
 		);
 	};
+
+	std::chrono::nanoseconds Duration = std::chrono::nanoseconds::zero();
 	for( std::size_t i = 0; i < TRIALCOUNT; ++i )
 	{
 		Duration += Measure<>::Duration(qHilbertProc);
