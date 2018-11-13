@@ -20,7 +20,7 @@
 constexpr std::size_t Log2( std::size_t Value )
 {
 #ifdef _MSC_VER
-	std::uint32_t Depth;
+	std::uint32_t Depth = 0;
 	_BitScanReverse64(
 		reinterpret_cast<unsigned long*>(&Depth),
 		static_cast<std::uint64_t>(Value)
