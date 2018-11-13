@@ -25,21 +25,28 @@ void PrintCurve(
 	const std::array<glm::u32vec2, Distances.size()>& Positions
 )
 {
-	char Glyphs[TestWidth][TestWidth] = {};
-	for( std::size_t i = 1; i < TestWidth * TestWidth - 1; ++i )
+	wchar_t Glyphs[TestWidth][TestWidth] = {};
+	for( std::size_t i = 0; i < TestWidth * TestWidth - 1; ++i )
 	{
-		const glm::u32vec2& CurPoint = Positions[i];
-		const glm::u32vec2& In  = Positions[ i - 1 ] - CurPoint;
-		const glm::u32vec2& Out = CurPoint - Positions[ i + 1 ];
-		Glyphs[CurPoint.y][CurPoint.x] = "-|"[
-			In.y & 0b1
+		const glm::i32vec2& CurPoint = glm::i32vec2(Positions[i]);
+		const glm::i32vec2 In  = i != 0 ? 
+			glm::i32vec2(Positions[ i - 1 ]) - CurPoint
+			:
+			glm::i32vec2(0);
+		const glm::i32vec2 Out = i != TestWidth * TestWidth ? 
+			CurPoint - glm::i32vec2(Positions[ i + 1 ])
+			:
+			glm::i32vec2(0);
+		glm::i8vec2 Delta = glm::sign(In + Out);
+		Glyphs[CurPoint.y][CurPoint.x] = L"012345678"[
+			glm::atan(Delta.y,Delta.x) % 8
 		];
 	}
 
 	for( std::size_t i = 0; i < TestWidth; ++i )
 	{
-		std::printf(
-			"|%.*s|\n",
+		std::wprintf(
+			L"|%.*s|\n",
 			TestWidth,
 			Glyphs[i]
 		);
