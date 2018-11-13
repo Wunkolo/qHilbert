@@ -17,6 +17,32 @@
 
 #define TRIALCOUNT 10
 
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <Windows.h>
+// Statically enables "ENABLE_VIRTUAL_TERMINAL_PROCESSING" for the terminal
+// at runtime to allow for unix-style escape sequences. 
+static const bool _WndV100Enabled = []() -> bool
+	{
+		const auto Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+		DWORD ConsoleMode;
+		GetConsoleMode(
+			Handle,
+			&ConsoleMode
+		);
+		SetConsoleMode(
+			Handle,
+			ConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+		);
+		GetConsoleMode(
+			Handle,
+			&ConsoleMode
+		);
+		return ConsoleMode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+	}();
+#endif
+
 template< typename TimeT = std::chrono::nanoseconds >
 struct Measure
 {
@@ -103,7 +129,7 @@ std::chrono::nanoseconds WikiBench()
 				TargetPoints.end(),
 				PointsInt.begin(),
 				PointsInt.end()
-			) ? "\e[0;32mPASS\e[0m" : "\e[0;31FAIL\e[0m")
+			) ? "\033[0;32mPASS\033[0m" : "\033[0;31FAIL\033[0m")
 		<< std::endl;
 	return Duration;
 }
@@ -139,7 +165,7 @@ std::chrono::nanoseconds qHilbertBench()
 				TargetPoints.end(),
 				Positions.begin(),
 				Positions.end()
-			) ? "\e[0;32mPASS\e[0m" : "\e[0;31mFAIL\e[0m")
+			) ? "\033[0;32mPASS\033[0m" : "\033[0;31mFAIL\033[0m")
 		<< std::endl;
 	return Duration;
 }
@@ -168,9 +194,9 @@ int main()
 
 	std::cout
 		<< "Speedup: "
-		<< (Speedup > 1.0 ? "\e[0;32m":"\e[0;31m")
+		<< (Speedup > 1.0 ? "\033[0;32m":"\033[0;31m")
 		<< Speedup
-		<< "\e[0m"
+		<< "\033[0m"
 		<< std::endl;
 
 	return EXIT_SUCCESS;
