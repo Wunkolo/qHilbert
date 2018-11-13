@@ -49,7 +49,7 @@ void PrintCurve(
 )
 {
 	char Glyphs[TestWidth][TestWidth] = {};
-	for( std::size_t i = 0; i < TestWidth * TestWidth; ++i )
+	for( std::size_t i = 1; i < TestWidth * TestWidth - 1; ++i )
 	{
 		const glm::u32vec2& CurPoint = Positions[i];
 		const glm::u32vec2& In  = Positions[ i - 1 ] - CurPoint;
