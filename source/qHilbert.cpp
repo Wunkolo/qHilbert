@@ -17,13 +17,13 @@
 #else
 #endif
 
-constexpr std::size_t Log2( std::size_t Value )
+std::size_t Log2( std::size_t Value )
 {
 #ifdef _MSC_VER
 	std::uint32_t Depth = 0;
-	_BitScanReverse64(
+	_BitScanForward(
 		reinterpret_cast<unsigned long*>(&Depth),
-		static_cast<std::uint64_t>(Value)
+		static_cast<std::uint32_t>(Value)
 	);
 #else
 	const std::size_t Depth = __builtin_clz(Value) - 1;
@@ -62,7 +62,7 @@ inline void qHilbert(
 
 // Serial
 
-#if defined(__BMI2__)// BMI2
+#if defined(__BMI2__) || defined(_MSC_VER) // BMI2
 template<>
 inline void qHilbert<SIMDSize::Serial>(
 	std::size_t Size, // Must be power of 2
@@ -138,7 +138,7 @@ inline void qHilbert<SIMDSize::Serial>(
 #endif
 
 // Four at a time
-#ifdef __SSE4_2__
+#if defined(__SSE4_2__) || defined(_MSC_VER)
 template<>
 inline void qHilbert<SIMDSize::Size4>(
 	std::size_t Size, // Must be power of 2
