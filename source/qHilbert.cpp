@@ -216,11 +216,11 @@ inline void qHilbert<SIMDSize::Size4>(
 		const __m128i PosY = _mm_and_si128( s, _mm_set1_epi32(0xFFFF) );
 
 		_mm_storeu_si128(
-			reinterpret_cast<__m128i*>(&Positions[i]),
+			reinterpret_cast<__m128i*>(&Positions[i * 4]),
 			_mm_unpacklo_epi32( PosX, PosY )
 		);
 		_mm_storeu_si128(
-			reinterpret_cast<__m128i*>(&Positions[i + 2]),
+			reinterpret_cast<__m128i*>(&Positions[i * 4 + 2]),
 			_mm_unpackhi_epi32( PosX, PosY )
 		);
 	}
