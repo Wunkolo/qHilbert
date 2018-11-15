@@ -235,7 +235,7 @@ inline void qHilbert<SIMDSize::Size4>(
 #endif
 
 // Eight at a time
-#if defined(__AVX2__) || defined(_MSC_VER)
+#if defined(__AVX2__)
 template<>
 inline void qHilbert<SIMDSize::Size8>(
 	std::size_t Size, // Must be power of 2
