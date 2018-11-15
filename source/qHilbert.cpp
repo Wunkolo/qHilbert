@@ -187,25 +187,22 @@ inline void qHilbert<SIMDSize::Size4>(
 
 		s = _mm_and_si128( s, _mm_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
 
-		////
+		// Parallel extract odd and even bits
 		t = _mm_and_si128(
 			_mm_xor_si128( s, _mm_srli_epi32( s, 1 ) ),
 			_mm_set1_epi32(0x22222222)
 		);
 		s = _mm_xor_si128( s, _mm_xor_si128( t, _mm_slli_epi32( t, 1 ) ) );
-		////
 		t = _mm_and_si128(
 			_mm_xor_si128( s, _mm_srli_epi32( s, 2 ) ),
 			_mm_set1_epi32(0x0C0C0C0C)
 		);
 		s = _mm_xor_si128( s, _mm_xor_si128( t, _mm_slli_epi32( t, 2 ) ) );
-		////
 		t = _mm_and_si128(
 			_mm_xor_si128( s, _mm_srli_epi32( s, 4 ) ),
 			_mm_set1_epi32(0x00F000F0)
 		);
 		s = _mm_xor_si128( s, _mm_xor_si128( t, _mm_slli_epi32( t, 4 ) ) );
-		////
 		t = _mm_and_si128(
 			_mm_xor_si128( s, _mm_srli_epi32( s, 8 ) ),
 			_mm_set1_epi32(0x0000FF00)
@@ -286,25 +283,22 @@ inline void qHilbert<SIMDSize::Size8>(
 
 		s = _mm256_and_si256( s, _mm256_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
 
-		////
+		// Parallel extract odd and even bits
 		t = _mm256_and_si256(
 			_mm256_xor_si256( s, _mm256_srli_epi32( s, 1 ) ),
 			_mm256_set1_epi32(0x22222222)
 		);
 		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 1 ) ) );
-		////
 		t = _mm256_and_si256(
 			_mm256_xor_si256( s, _mm256_srli_epi32( s, 2 ) ),
 			_mm256_set1_epi32(0x0C0C0C0C)
 		);
 		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 2 ) ) );
-		////
 		t = _mm256_and_si256(
 			_mm256_xor_si256( s, _mm256_srli_epi32( s, 4 ) ),
 			_mm256_set1_epi32(0x00F000F0)
 		);
 		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 4 ) ) );
-		////
 		t = _mm256_and_si256(
 			_mm256_xor_si256( s, _mm256_srli_epi32( s, 8 ) ),
 			_mm256_set1_epi32(0x0000FF00)
@@ -342,6 +336,115 @@ inline void qHilbert<SIMDSize::Size8>(
 		Distances + i * 8,
 		Positions + i * 8,
 		Count % 8
+	);
+}
+#endif
+
+// Sixteen at a time
+#if defined(__AVX512F__)
+template<>
+inline void qHilbert<SIMDSize::Size16>(
+	std::size_t Size, // Must be power of 2
+	const std::uint32_t Distances[],
+	glm::u32vec2 Positions[],
+	std::size_t Count
+)
+{
+	std::size_t i = 0;
+	const std::size_t Depth = Log2(Size);
+	for( ; i < Count / 16; ++i )
+	{
+		__m512i s = _mm512_loadu_si512(
+			reinterpret_cast<const __m512i*>(&Distances[i * 16])
+		);
+		s = _mm512_or_si512( s, _mm512_set1_epi32( 0x55555555 << 2 * Depth ) );
+
+		const __m512i sr = _mm512_and_si512(
+			_mm512_srli_epi32( s, 1 ), _mm512_set1_epi32( 0x55555555 )
+		);
+
+		__m512i cs = _mm512_xor_si512(
+			_mm512_add_epi32(
+				_mm512_and_si512( s, _mm512_set1_epi32( 0x55555555 ) ), sr
+			),
+			_mm512_set1_epi32( 0x55555555 )
+		);
+
+		cs = _mm512_xor_si512( cs, _mm512_srli_epi32( cs,  2 ) );
+		cs = _mm512_xor_si512( cs, _mm512_srli_epi32( cs,  4 ) );
+		cs = _mm512_xor_si512( cs, _mm512_srli_epi32( cs,  8 ) );
+		cs = _mm512_xor_si512( cs, _mm512_srli_epi32( cs, 16 ) );
+
+		const __m512i Swap = _mm512_and_si512(
+			cs,
+			_mm512_set1_epi32( 0x55555555 )
+		);
+		const __m512i Comp = _mm512_and_si512(
+			_mm512_srli_epi32( cs, 1 ), _mm512_set1_epi32( 0x55555555 )
+		);
+
+		__m512i t = _mm512_xor_si512( _mm512_and_si512( s, Swap ), Comp );
+
+		s = _mm512_xor_si512(
+			s,
+			_mm512_xor_si512( sr, _mm512_xor_si512( t, _mm512_slli_epi32( t, 1 ) ) )
+		);
+
+		s = _mm512_and_si512( s, _mm512_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
+
+		// Parallel extract odd and even bits
+		t = _mm512_and_si512(
+			_mm512_xor_si512( s, _mm512_srli_epi32( s, 1 ) ),
+			_mm512_set1_epi32(0x22222222)
+		);
+		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 1 ) ) );
+		t = _mm512_and_si512(
+			_mm512_xor_si512( s, _mm512_srli_epi32( s, 2 ) ),
+			_mm512_set1_epi32(0x0C0C0C0C)
+		);
+		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 2 ) ) );
+		t = _mm512_and_si512(
+			_mm512_xor_si512( s, _mm512_srli_epi32( s, 4 ) ),
+			_mm512_set1_epi32(0x00F000F0)
+		);
+		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 4 ) ) );
+		t = _mm512_and_si512(
+			_mm512_xor_si512( s, _mm512_srli_epi32( s, 8 ) ),
+			_mm512_set1_epi32(0x0000FF00)
+		);
+		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 8 ) ) );
+
+		const __m512i PosX = _mm512_srli_epi32( s, 16 );
+		const __m512i PosY = _mm512_and_si512( s, _mm512_set1_epi32(0xFFFF) );
+
+		// There's probably a better way to do this that I forgot about
+		//  - Wed Nov 14 22:14:53 PST 2018
+		const __m512i InterleaveLo = _mm512_unpacklo_epi32( PosX, PosY );
+		const __m512i InterleaveHi = _mm512_unpackhi_epi32( PosX, PosY );
+
+		_mm512_storeu_si512(
+			reinterpret_cast<__m512i*>(&Positions[i * 16]),
+			_mm512_permutex2var_epi32(
+				InterleaveLo,
+				_mm512_set_epi64(8|3,8|2,3,2,8|1,8|0,1,0),
+				InterleaveHi,
+			)
+		);
+		_mm512_storeu_si512(
+			reinterpret_cast<__m512i*>(&Positions[i * 16 + 8]),
+			_mm512_permutex2var_epi32(
+				InterleaveLo,
+				_mm512_set_epi64(8|7,8|6,7,6,8|5,8|4,5,4),
+				InterleaveHi,
+			)
+		);
+	}
+
+	qHilbert<SIMDSize::Size16-1>(
+		Size,
+		Distances + i * 16,
+		Positions + i * 16,
+		Count % 16
 	);
 }
 #endif
