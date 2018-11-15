@@ -26,7 +26,7 @@ void PrintCurve(
 )
 {
 	wchar_t Glyphs[TestWidth][TestWidth] = {};
-	for( std::size_t i = 0; i < TestWidth * TestWidth - 1; ++i )
+	for( std::size_t i = 0; i < TestWidth * TestWidth; ++i )
 	{
 		const glm::i32vec2& CurPoint = glm::i32vec2(Positions[i]);
 		const glm::i32vec2 In  = i != 0 ? 
@@ -38,15 +38,19 @@ void PrintCurve(
 			:
 			glm::i32vec2(0);
 		glm::i8vec2 Delta = glm::sign(In + Out);
-		Glyphs[CurPoint.y][CurPoint.x] = L"012345678"[
-			glm::atan(Delta.y,Delta.x) % 8
-		];
+		const wchar_t GlyphLUT[3][3] = {
+			{L'┓',L'┃',L'┏'},
+			{L'━',L' ',L'━'},
+			{L'┛',L'┃',L'┗'},
+		};
+		Glyphs[Positions[i].y][Positions[i].x]
+			= GlyphLUT[Delta.y + 1][Delta.x + 1];
 	}
 
 	for( std::size_t i = 0; i < TestWidth; ++i )
 	{
 		std::wprintf(
-			L"|%.*s|\n",
+			L"|%.*ls|\n",
 			TestWidth,
 			Glyphs[i]
 		);
@@ -76,9 +80,9 @@ std::chrono::nanoseconds WikiBench()
 	{
 		Duration += Measure<>::Duration(WikiProc);
 	}
-	PrintCurve(PointsInt);
+	// PrintCurve(PointsInt);
 	std::cout
-		<< "d2xy\t"
+		<< "d2xy\t\t"
 		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT)
 		<< "ns"
 		<< std::endl
@@ -112,7 +116,7 @@ std::chrono::nanoseconds qHilbertBench()
 	{
 		Duration += Measure<>::Duration(qHilbertProc);
 	}
-	PrintCurve(Positions);
+	// PrintCurve(Positions);
 	std::cout
 		<< "qHilbert\t"
 		<< Duration.count() / static_cast<std::double_t>(TRIALCOUNT)
