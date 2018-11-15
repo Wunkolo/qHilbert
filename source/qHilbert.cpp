@@ -234,6 +234,118 @@ inline void qHilbert<SIMDSize::Size4>(
 }
 #endif
 
+// Eight at a time
+#if defined(__AVX2__) || defined(_MSC_VER)
+template<>
+inline void qHilbert<SIMDSize::Size8>(
+	std::size_t Size, // Must be power of 2
+	const std::uint32_t Distances[],
+	glm::u32vec2 Positions[],
+	std::size_t Count
+)
+{
+	std::size_t i = 0;
+	const std::size_t Depth = Log2(Size);
+	for( ; i < Count / 8; ++i )
+	{
+		__m256i s = _mm256_loadu_si256(
+			reinterpret_cast<const __m256i*>(&Distances[i * 8])
+		);
+		s = _mm256_or_si256( s, _mm256_set1_epi32( 0x55555555 << 2 * Depth ) );
+
+		const __m256i sr = _mm256_and_si256(
+			_mm256_srli_epi32( s, 1 ), _mm256_set1_epi32( 0x55555555 )
+		);
+
+		__m256i cs = _mm256_xor_si256(
+			_mm256_add_epi32(
+				_mm256_and_si256( s, _mm256_set1_epi32( 0x55555555 ) ), sr
+			),
+			_mm256_set1_epi32( 0x55555555 )
+		);
+
+		cs = _mm256_xor_si256( cs, _mm256_srli_epi32( cs,  2 ) );
+		cs = _mm256_xor_si256( cs, _mm256_srli_epi32( cs,  4 ) );
+		cs = _mm256_xor_si256( cs, _mm256_srli_epi32( cs,  8 ) );
+		cs = _mm256_xor_si256( cs, _mm256_srli_epi32( cs, 16 ) );
+
+		const __m256i Swap = _mm256_and_si256(
+			cs,
+			_mm256_set1_epi32( 0x55555555 )
+		);
+		const __m256i Comp = _mm256_and_si256(
+			_mm256_srli_epi32( cs, 1 ), _mm256_set1_epi32( 0x55555555 )
+		);
+
+		__m256i t = _mm256_xor_si256( _mm256_and_si256( s, Swap ), Comp );
+
+		s = _mm256_xor_si256(
+			s,
+			_mm256_xor_si256( sr, _mm256_xor_si256( t, _mm256_slli_epi32( t, 1 ) ) )
+		);
+
+		s = _mm256_and_si256( s, _mm256_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
+
+		////
+		t = _mm256_and_si256(
+			_mm256_xor_si256( s, _mm256_srli_epi32( s, 1 ) ),
+			_mm256_set1_epi32(0x22222222)
+		);
+		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 1 ) ) );
+		////
+		t = _mm256_and_si256(
+			_mm256_xor_si256( s, _mm256_srli_epi32( s, 2 ) ),
+			_mm256_set1_epi32(0x0C0C0C0C)
+		);
+		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 2 ) ) );
+		////
+		t = _mm256_and_si256(
+			_mm256_xor_si256( s, _mm256_srli_epi32( s, 4 ) ),
+			_mm256_set1_epi32(0x00F000F0)
+		);
+		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 4 ) ) );
+		////
+		t = _mm256_and_si256(
+			_mm256_xor_si256( s, _mm256_srli_epi32( s, 8 ) ),
+			_mm256_set1_epi32(0x0000FF00)
+		);
+		s = _mm256_xor_si256( s, _mm256_xor_si256( t, _mm256_slli_epi32( t, 8 ) ) );
+
+		const __m256i PosX = _mm256_srli_epi32( s, 16 );
+		const __m256i PosY = _mm256_and_si256( s, _mm256_set1_epi32(0xFFFF) );
+
+		// There's probably a better way to do this that I forgot about
+		//  - Wed Nov 14 22:14:53 PST 2018
+		const __m256i InterleaveLo = _mm256_unpacklo_epi32( PosX, PosY );
+		const __m256i InterleaveHi = _mm256_unpackhi_epi32( PosX, PosY );
+
+		_mm256_storeu_si256(
+			reinterpret_cast<__m256i*>(&Positions[i * 8]),
+			_mm256_permute2x128_si256(
+				InterleaveLo,
+				InterleaveHi,
+				0b0010'0000
+			)
+		);
+		_mm256_storeu_si256(
+			reinterpret_cast<__m256i*>(&Positions[i * 8 + 4]),
+			_mm256_permute2x128_si256(
+				InterleaveLo,
+				InterleaveHi,
+				0b0011'0001
+			)
+		);
+	}
+
+	qHilbert<SIMDSize::Size8-1>(
+		Size,
+		Distances + i * 8,
+		Positions + i * 8,
+		Count % 8
+	);
+}
+#endif
+
 void qHilbert(
 	std::size_t Size, // Must be power of 2
 	const std::uint32_t Distances[],
