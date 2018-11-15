@@ -17,7 +17,17 @@
 
 #define TRIALCOUNT 10
 
-const std::size_t TestWidth = 32; // Must be power-of-two
+// With a 2D Hilbert curve, every 2 bits of a word maps up
+// to an (x,y) transformation. So a 32-bit index value
+// can support a maximum "depth" of 16 before truncation
+const std::uint32_t TestDepth = 16;
+
+static_assert(
+	TestDepth <= 16,
+	"Recursion depths beyond 16 not supported for 32-bit indexes"
+);
+
+const std::uint32_t TestWidth = TestDepth * TestDepth;
 std::array<std::uint32_t, TestWidth * TestWidth> Distances;
 std::array<glm::u32vec2, Distances.size()> TargetPoints;
 
