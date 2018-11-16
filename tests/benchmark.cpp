@@ -157,7 +157,7 @@ int main()
 			reinterpret_cast<int*>(&TargetPoints[i].y)
 		);
 	}
-
+	std::cout << GetProcessorModel() << std::endl;
 	const std::chrono::nanoseconds WikiTime = WikiBench();
 	const std::chrono::nanoseconds qHilbertTime = qHilbertBench();
 
