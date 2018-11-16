@@ -318,7 +318,7 @@ inline void qHilbert<SIMDSize::Size8>(
 			_mm256_permute2x128_si256(
 				InterleaveLo,
 				InterleaveHi,
-				0b0010'0000
+				0b00'10'00'00
 			)
 		);
 		_mm256_storeu_si256(
@@ -326,7 +326,7 @@ inline void qHilbert<SIMDSize::Size8>(
 			_mm256_permute2x128_si256(
 				InterleaveLo,
 				InterleaveHi,
-				0b0011'0001
+				0b00'11'00'01
 			)
 		);
 	}
