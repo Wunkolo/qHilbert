@@ -20,7 +20,7 @@
 // With a 2D Hilbert curve, every 2 bits of a word maps up
 // to an (x,y) transformation. So a 32-bit index value
 // can support a maximum "depth" of 16 before truncation
-const std::uint32_t TestOrder = 11;
+const std::uint32_t TestOrder = 7;
 
 static_assert(
 	TestOrder <= 16,
