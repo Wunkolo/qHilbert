@@ -78,7 +78,7 @@ inline void qHilbert<SIMDSize::Serial>(
 		s |= 0x55555555 << 2 * Depth;
 
 		const std::uint32_t sr = (s >> 1) & 0x55555555;
-		std::uint32_t cs = ((s & 0x55555555) + sr) ^ 0x55555555;
+		std::uint32_t cs = ( (s & 0x55555555) + sr) ^ 0x55555555;
 
 		cs ^= ( cs >> 2);
 		cs ^= ( cs >> 4);
@@ -86,10 +86,11 @@ inline void qHilbert<SIMDSize::Serial>(
 		cs ^= ( cs >> 16);
 
 		const std::uint32_t Swap = cs & 0x55555555;
+
 		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
 
 		std::uint32_t t = (s & Swap) ^ Comp;
-		s ^= sr ^ t ^ (t << 1);
+		s = s ^ sr ^ t ^ (t << 1);
 
 		Positions[i].x = _pext_u32( s, 0xAAAA );
 		Positions[i].y = _pext_u32( s, 0x5555 );
@@ -111,21 +112,56 @@ inline void qHilbert<SIMDSize::Serial>(
 		std::uint32_t s = Distances[i];
 		s |= 0x55555555 << 2 * Depth;
 
+		// Pad the index variable with 0b01 bits
+		// 0b01(rather than 0b00) due to the later
+		// "notequal" calculation being later inverted
+		// Bit addition(+) produces an "and"(carry) and
+		// "xor"(sum) bit result
 		const std::uint32_t sr = (s >> 1) & 0x55555555;
+
+		// Swap_i = Swap_i+1 ^ (s_2i == s_2i+1)
+		// Comp_i = Comp_i+1 ^ (s_2i &  s_2i+1)
+		// Vector of complement-swap bits
+		// bits of ...cscscscscs
+		// The addition is a fast trick to put "&" in the odd bit
+		// (the carry bit of bit addition is AND)
+		// and XOR(not-equal) in the even bits, the final xor flips the
+		// not-equal bits into equal
+		//
+		//    s_2i+1
+		//  s_2i |
+		//   V   V
+		//   0 + 0 = 0b00 ^ 0b01 = 0b01
+		//   0 + 1 = 0b01 ^ 0b01 = 0b00
+		//   1 + 0 = 0b01 ^ 0b01 = 0b00
+		//   1 + 1 = 0b10 ^ 0b01 = 0b11
+		//                           VV
+		//                ...cscscscscs
 		std::uint32_t cs = ((s & 0x55555555) + sr) ^ 0x55555555;
 
+		// Parallel prefix xor to propagate complement and swap info
+		// from left to right
 		cs ^= ( cs >> 2);
 		cs ^= ( cs >> 4);
 		cs ^= ( cs >> 8);
 		cs ^= ( cs >> 16);
 
+		// Extract swap bits into even bits
 		const std::uint32_t Swap = cs & 0x55555555;
+
+		// Extract complement bits into even bits
 		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
 
+		//                        V              t             V
+		// X_i = [       s_2i+1 ^ (s_2i & Swap_i+1 )] ^ Comp_i+1
+		// Y_i = [s_2i ^ s_2i+1 ^ (s_2i & Swap_i+1 )] ^ Comp_i+1
 		std::uint32_t t = (s & Swap) ^ Comp;
 		s ^= sr ^ t ^ (t << 1);
+
+		// Mask unused bits
 		s &= ( ( 1 << 2 * Depth ) - 1 );
 
+		// Parallel bit extract odd and even bits
 		t = (s ^ ( s >> 1)) & 0x22222222; s ^= t ^ ( t << 1 );
 		t = (s ^ ( s >> 2)) & 0x0C0C0C0C; s ^= t ^ ( t << 2 );
 		t = (s ^ ( s >> 4)) & 0x00F000F0; s ^= t ^ ( t << 4 );
