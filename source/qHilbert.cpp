@@ -232,7 +232,7 @@ inline void qHilbert<SIMDSize::Size4>(
 #endif
 
 // Eight at a time
-#if defined(__AVX2__)
+#if defined(__AVX2__) || defined(_MSC_VER)
 template<>
 inline void qHilbert<SIMDSize::Size8>(
 	std::size_t Size, // Must be power of 2
@@ -341,7 +341,7 @@ inline void qHilbert<SIMDSize::Size8>(
 #endif
 
 // Sixteen at a time
-#if defined(__AVX512F__)
+#if defined(__AVX512F__) || defined(_MSC_VER)
 template<>
 inline void qHilbert<SIMDSize::Size16>(
 	std::size_t Size, // Must be power of 2
@@ -424,7 +424,7 @@ inline void qHilbert<SIMDSize::Size16>(
 
 		_mm512_storeu_si512(
 			reinterpret_cast<__m512i*>(&Positions[i * 16]),
-			_mm512_permutex2var_epi32(
+			_mm512_permutex2var_epi64(
 				InterleaveLo,
 				_mm512_set_epi64(8|3,8|2,3,2,8|1,8|0,1,0),
 				InterleaveHi
@@ -432,7 +432,7 @@ inline void qHilbert<SIMDSize::Size16>(
 		);
 		_mm512_storeu_si512(
 			reinterpret_cast<__m512i*>(&Positions[i * 16 + 8]),
-			_mm512_permutex2var_epi32(
+			_mm512_permutex2var_epi64(
 				InterleaveLo,
 				_mm512_set_epi64(8|7,8|6,7,6,8|5,8|4,5,4),
 				InterleaveHi
