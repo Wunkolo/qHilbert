@@ -145,6 +145,7 @@ std::chrono::nanoseconds qHilbertBench()
 
 int main()
 {
+	std::cout << std::fixed;
 	// Distance integers from [0,N^2 - 1]
 	std::iota(Distances.begin(), Distances.end(), 0);
 
