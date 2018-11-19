@@ -350,6 +350,11 @@ inline void qHilbert<SIMDSize::Size16>(
 	std::size_t Count
 )
 {
+	// Compile time constants used for vpternlogd
+	constexpr std::uint8_t OPA = 0b11110000;
+	constexpr std::uint8_t OPB = 0b11001100;
+	constexpr std::uint8_t OPC = 0b10101010;
+
 	std::size_t i = 0;
 	const std::size_t Depth = Log2(Size);
 	for( ; i < Count / 16; ++i )
@@ -383,36 +388,74 @@ inline void qHilbert<SIMDSize::Size16>(
 			_mm512_srli_epi32( cs, 1 ), _mm512_set1_epi32( 0x55555555 )
 		);
 
-		__m512i t = _mm512_xor_si512( _mm512_and_si512( s, Swap ), Comp );
-
-		s = _mm512_xor_si512(
+		__m512i t = _mm512_ternarylogic_epi32(
 			s,
-			_mm512_xor_si512( sr, _mm512_xor_si512( t, _mm512_slli_epi32( t, 1 ) ) )
+			Swap,
+			Comp,
+			(OPA & OPB) ^ OPC
 		);
 
-		s = _mm512_and_si512( s, _mm512_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
+		s = _mm512_ternarylogic_epi32(
+			s,
+			_mm512_ternarylogic_epi32(
+				sr,
+				t,
+				_mm512_slli_epi32(t, 1),
+				OPA ^ OPB ^ OPC
+			),
+			_mm512_set1_epi32( ( 1 << 2 * Depth ) - 1 ),
+			(OPA ^ OPB) & OPC
+		);
 
 		// Parallel extract odd and even bits
-		t = _mm512_and_si512(
-			_mm512_xor_si512( s, _mm512_srli_epi32( s, 1 ) ),
-			_mm512_set1_epi32(0x22222222)
+		t = _mm512_ternarylogic_epi32(
+			s,
+			_mm512_srli_epi32(s, 1),
+			_mm512_set1_epi32(0x22222222),
+			(OPA ^ OPB) & OPC
 		);
-		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 1 ) ) );
-		t = _mm512_and_si512(
-			_mm512_xor_si512( s, _mm512_srli_epi32( s, 2 ) ),
-			_mm512_set1_epi32(0x0C0C0C0C)
+		s = _mm512_ternarylogic_epi32(
+			s,
+			t,
+			_mm512_slli_epi32(t, 1),
+			OPA ^ OPB ^ OPC
 		);
-		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 2 ) ) );
-		t = _mm512_and_si512(
-			_mm512_xor_si512( s, _mm512_srli_epi32( s, 4 ) ),
-			_mm512_set1_epi32(0x00F000F0)
+		t = _mm512_ternarylogic_epi32(
+			s,
+			_mm512_srli_epi32(s, 2),
+			_mm512_set1_epi32(0x0C0C0C0C),
+			(OPA ^ OPB) & OPC
 		);
-		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 4 ) ) );
-		t = _mm512_and_si512(
-			_mm512_xor_si512( s, _mm512_srli_epi32( s, 8 ) ),
-			_mm512_set1_epi32(0x0000FF00)
+		s = _mm512_ternarylogic_epi32(
+			s,
+			t,
+			_mm512_slli_epi32(t, 2),
+			OPA ^ OPB ^ OPC
 		);
-		s = _mm512_xor_si512( s, _mm512_xor_si512( t, _mm512_slli_epi32( t, 8 ) ) );
+		t = _mm512_ternarylogic_epi32(
+			s,
+			_mm512_srli_epi32(s, 4),
+			_mm512_set1_epi32(0x00F000F0),
+			(OPA ^ OPB) & OPC
+		);
+		s = _mm512_ternarylogic_epi32(
+			s,
+			t,
+			_mm512_slli_epi32(t, 4),
+			OPA ^ OPB ^ OPC
+		);
+		t = _mm512_ternarylogic_epi32(
+			s,
+			_mm512_srli_epi32(s, 8),
+			_mm512_set1_epi32(0x0000FF00),
+			(OPA ^ OPB) & OPC
+		);
+		s = _mm512_ternarylogic_epi32(
+			s,
+			t,
+			_mm512_slli_epi32(t, 8),
+			OPA ^ OPB ^ OPC
+		);
 
 		const __m512i PosX = _mm512_srli_epi32( s, 16 );
 		const __m512i PosY = _mm512_and_si512( s, _mm512_set1_epi32(0xFFFF) );
