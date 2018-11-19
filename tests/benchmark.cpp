@@ -20,7 +20,7 @@
 // With a 2D Hilbert curve, every 2 bits of a word maps up
 // to an (x,y) transformation. So a 32-bit index value
 // can support a maximum "depth" of 16 before truncation
-const std::uint32_t TestOrder = 16;
+const std::uint32_t TestOrder = 11;
 
 static_assert(
 	TestOrder <= 16,
@@ -28,15 +28,16 @@ static_assert(
 );
 
 const std::uint32_t TestWidth = 1U << TestOrder;
-std::array<std::uint32_t, TestWidth * TestWidth> Distances;
-std::array<glm::u32vec2, Distances.size()> TargetPoints;
+const std::uint64_t TestArea = TestWidth * static_cast<std::uint64_t>(TestWidth);
+std::vector<std::uint32_t> Distances(TestArea);
+std::vector<glm::u32vec2> TargetPoints(TestArea);
 
 void PrintCurve(
-	const std::array<glm::u32vec2, Distances.size()>& Positions
+	const std::vector<glm::u32vec2>& Positions
 )
 {
 	wchar_t Glyphs[TestWidth][TestWidth] = {};
-	for( std::size_t i = 0; i < TestWidth * TestWidth; ++i )
+	for( std::size_t i = 0; i < TestArea; ++i )
 	{
 		const glm::i32vec2& CurPoint = glm::i32vec2(Positions[i]);
 		const glm::i32vec2 In  = i != 0 ? 
@@ -70,7 +71,7 @@ void PrintCurve(
 std::chrono::nanoseconds WikiBench()
 {
 	/// Wikipedia
-	std::array<glm::u32vec2, Distances.size()> PointsInt;
+	std::vector<glm::u32vec2> PointsInt(Distances.size());
 	const auto WikiProc =
 	[&PointsInt]()
 	{
@@ -109,7 +110,7 @@ std::chrono::nanoseconds WikiBench()
 std::chrono::nanoseconds qHilbertBench()
 {
 	/// qHilbert
-	std::array<glm::u32vec2, Distances.size()> Positions;
+	std::vector<glm::u32vec2> Positions(Distances.size());
 	const auto qHilbertProc = 
 	[&Positions]()
 	{
