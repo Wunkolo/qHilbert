@@ -17,20 +17,6 @@
 #else
 #endif
 
-std::size_t Log2( std::size_t Value )
-{
-#ifdef _MSC_VER
-	std::uint32_t Depth = 0;
-	_BitScanForward(
-		reinterpret_cast<unsigned long*>(&Depth),
-		static_cast<std::uint32_t>(Value)
-	);
-#else
-	const std::size_t Depth = __builtin_clz(Value) - 1;
-#endif
-	return Depth;
-}
-
 enum SIMDSize
 {
 	Serial  = 0,
@@ -46,14 +32,14 @@ enum SIMDSize
 
 template<std::size_t Width>
 inline void qHilbert(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
 	qHilbert<Width-1>(
-		Size,
+		Order,
 		Distances,
 		Positions,
 		Count
@@ -65,17 +51,17 @@ inline void qHilbert(
 #if defined(__BMI2__) || defined(_MSC_VER) // BMI2
 template<>
 inline void qHilbert<SIMDSize::Serial>(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
-	const std::size_t Depth = Log2(Size);
+	
 	for( std::size_t i = 0; i < Count; ++i )
 	{
 		std::uint32_t s = Distances[i];
-		s |= 0x55555555 << 2 * Depth;
+		s |= 0x55555555 << 2 * Order;
 
 		const std::uint32_t sr = (s >> 1) & 0x55555555;
 		std::uint32_t cs = ( (s & 0x55555555) + sr) ^ 0x55555555;
@@ -99,18 +85,18 @@ inline void qHilbert<SIMDSize::Serial>(
 #else // Native
 template<>
 inline void qHilbert<SIMDSize::Serial>(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
-	const std::size_t Depth = Log2(Size);
+	
 	for( std::size_t i = 0; i < Count; ++i )
 	{
 		// Parallel prefix method, from Hacker's Delight, Pg. 365
 		std::uint32_t s = Distances[i];
-		s |= 0x55555555 << 2 * Depth;
+		s |= 0x55555555 << 2 * Order;
 
 		// Pad the index variable with 0b01 bits
 		// 0b01(rather than 0b00) due to the later
@@ -159,7 +145,7 @@ inline void qHilbert<SIMDSize::Serial>(
 		s ^= sr ^ t ^ (t << 1);
 
 		// Mask unused bits
-		s &= ( ( 1 << 2 * Depth ) - 1 );
+		s &= ( ( 1 << 2 * Order ) - 1 );
 
 		// Parallel bit extract odd and even bits
 		t = (s ^ ( s >> 1)) & 0x22222222; s ^= t ^ ( t << 1 );
@@ -177,21 +163,21 @@ inline void qHilbert<SIMDSize::Serial>(
 #if defined(__SSE4_2__) || defined(_MSC_VER)
 template<>
 inline void qHilbert<SIMDSize::Size4>(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
 	std::size_t i = 0;
-	const std::size_t Depth = Log2(Size);
+	
 	// 4 at a time ( SSE4.2 )
 	for( ; i < Count / 4; ++i )
 	{
 		__m128i s = _mm_loadu_si128(
 			reinterpret_cast<const __m128i*>(&Distances[i * 4])
 		);
-		s = _mm_or_si128( s, _mm_set1_epi32( 0x55555555 << 2 * Depth ) );
+		s = _mm_or_si128( s, _mm_set1_epi32( 0x55555555 << 2 * Order ) );
 
 		const __m128i sr = _mm_and_si128(
 			_mm_srli_epi32( s, 1 ), _mm_set1_epi32( 0x55555555 )
@@ -221,7 +207,7 @@ inline void qHilbert<SIMDSize::Size4>(
 			_mm_xor_si128( sr, _mm_xor_si128( t, _mm_slli_epi32( t, 1 ) ) )
 		);
 
-		s = _mm_and_si128( s, _mm_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
+		s = _mm_and_si128( s, _mm_set1_epi32( ( 1 << 2 * Order ) - 1 ) );
 
 		// Parallel extract odd and even bits
 		t = _mm_and_si128(
@@ -259,7 +245,7 @@ inline void qHilbert<SIMDSize::Size4>(
 	}
 
 	qHilbert<SIMDSize::Size4-1>(
-		Size,
+		Order,
 		Distances + i * 4,
 		Positions + i * 4,
 		Count % 4
@@ -271,20 +257,20 @@ inline void qHilbert<SIMDSize::Size4>(
 #if defined(__AVX2__) || defined(_MSC_VER)
 template<>
 inline void qHilbert<SIMDSize::Size8>(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
 	std::size_t i = 0;
-	const std::size_t Depth = Log2(Size);
+	
 	for( ; i < Count / 8; ++i )
 	{
 		__m256i s = _mm256_loadu_si256(
 			reinterpret_cast<const __m256i*>(&Distances[i * 8])
 		);
-		s = _mm256_or_si256( s, _mm256_set1_epi32( 0x55555555 << 2 * Depth ) );
+		s = _mm256_or_si256( s, _mm256_set1_epi32( 0x55555555 << 2 * Order ) );
 
 		const __m256i sr = _mm256_and_si256(
 			_mm256_srli_epi32( s, 1 ), _mm256_set1_epi32( 0x55555555 )
@@ -317,7 +303,7 @@ inline void qHilbert<SIMDSize::Size8>(
 			_mm256_xor_si256( sr, _mm256_xor_si256( t, _mm256_slli_epi32( t, 1 ) ) )
 		);
 
-		s = _mm256_and_si256( s, _mm256_set1_epi32( ( 1 << 2 * Depth ) - 1 ) );
+		s = _mm256_and_si256( s, _mm256_set1_epi32( ( 1 << 2 * Order ) - 1 ) );
 
 		// Parallel extract odd and even bits
 		t = _mm256_and_si256(
@@ -368,7 +354,7 @@ inline void qHilbert<SIMDSize::Size8>(
 	}
 
 	qHilbert<SIMDSize::Size8-1>(
-		Size,
+		Order,
 		Distances + i * 8,
 		Positions + i * 8,
 		Count % 8
@@ -380,7 +366,7 @@ inline void qHilbert<SIMDSize::Size8>(
 #if defined(__AVX512F__) || defined(_MSC_VER)
 template<>
 inline void qHilbert<SIMDSize::Size16>(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
@@ -392,13 +378,13 @@ inline void qHilbert<SIMDSize::Size16>(
 	constexpr std::uint8_t OPC = 0b10101010;
 
 	std::size_t i = 0;
-	const std::size_t Depth = Log2(Size);
+	
 	for( ; i < Count / 16; ++i )
 	{
 		__m512i s = _mm512_loadu_si512(
 			reinterpret_cast<const __m512i*>(&Distances[i * 16])
 		);
-		s = _mm512_or_si512( s, _mm512_set1_epi32( 0x55555555 << 2 * Depth ) );
+		s = _mm512_or_si512( s, _mm512_set1_epi32( 0x55555555 << 2 * Order ) );
 
 		const __m512i sr = _mm512_and_si512(
 			_mm512_srli_epi32( s, 1 ), _mm512_set1_epi32( 0x55555555 )
@@ -439,7 +425,7 @@ inline void qHilbert<SIMDSize::Size16>(
 				_mm512_slli_epi32(t, 1),
 				OPA ^ OPB ^ OPC
 			),
-			_mm512_set1_epi32( ( 1 << 2 * Depth ) - 1 ),
+			_mm512_set1_epi32( ( 1 << 2 * Order ) - 1 ),
 			(OPA ^ OPB) & OPC
 		);
 
@@ -520,7 +506,7 @@ inline void qHilbert<SIMDSize::Size16>(
 	}
 
 	qHilbert<SIMDSize::Size16-1>(
-		Size,
+		Order,
 		Distances + i * 16,
 		Positions + i * 16,
 		Count % 16
@@ -529,14 +515,14 @@ inline void qHilbert<SIMDSize::Size16>(
 #endif
 
 void qHilbert(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
 	qHilbert<SIMDSize::SizeMax>(
-		Size,
+		Order,
 		Distances,
 		Positions,
 		Count

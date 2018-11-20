@@ -115,7 +115,7 @@ std::chrono::nanoseconds qHilbertBench()
 	[&Positions]()
 	{
 		qHilbert(
-			TestWidth,
+			TestOrder,
 			Distances.data(),
 			Positions.data(),
 			Distances.size()

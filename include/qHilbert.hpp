@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 
 void qHilbert(
-	std::size_t Size, // Must be power of 2
+	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
