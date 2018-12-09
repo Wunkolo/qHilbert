@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <glm/glm.hpp>
 
-void qHilbert(
+void qHilbert2D(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],

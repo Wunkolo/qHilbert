@@ -68,7 +68,7 @@ void PrintCurve(
 	}
 }
 
-std::chrono::nanoseconds WikiBench()
+std::chrono::nanoseconds Wiki2DBench()
 {
 	/// Wikipedia
 	std::vector<glm::u32vec2> PointsInt(Distances.size());
@@ -107,14 +107,14 @@ std::chrono::nanoseconds WikiBench()
 	return Duration;
 }
 
-std::chrono::nanoseconds qHilbertBench()
+std::chrono::nanoseconds qHilbert2DBench()
 {
 	/// qHilbert
 	std::vector<glm::u32vec2> Positions(Distances.size());
 	const auto qHilbertProc = 
 	[&Positions]()
 	{
-		qHilbert(
+		qHilbert2D(
 			TestOrder,
 			Distances.data(),
 			Positions.data(),
@@ -160,11 +160,11 @@ int main()
 		);
 	}
 	std::cout << GetProcessorModel() << std::endl;
-	const std::chrono::nanoseconds WikiTime = WikiBench();
-	const std::chrono::nanoseconds qHilbertTime = qHilbertBench();
+	const std::chrono::nanoseconds Wiki2DTime = Wiki2DBench();
+	const std::chrono::nanoseconds qHilbert2DTime = qHilbert2DBench();
 
-	const std::double_t Speedup = WikiTime.count()
-		/ static_cast<std::double_t>(qHilbertTime.count());
+	const std::double_t Speedup = Wiki2DTime.count()
+		/ static_cast<std::double_t>(qHilbert2DTime.count());
 
 	std::cout
 		<< "Speedup: "

@@ -31,14 +31,14 @@ enum SIMDSize
 };
 
 template<std::size_t Width>
-inline void qHilbert(
+inline void qHilbert2D(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
-	qHilbert<Width-1>(
+	qHilbert2D<Width-1>(
 		Order,
 		Distances,
 		Positions,
@@ -50,7 +50,7 @@ inline void qHilbert(
 
 #if defined(__BMI2__) || defined(_MSC_VER) // BMI2
 template<>
-inline void qHilbert<SIMDSize::Serial>(
+inline void qHilbert2D<SIMDSize::Serial>(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
@@ -84,7 +84,7 @@ inline void qHilbert<SIMDSize::Serial>(
 }
 #else // Native
 template<>
-inline void qHilbert<SIMDSize::Serial>(
+inline void qHilbert2D<SIMDSize::Serial>(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
@@ -162,7 +162,7 @@ inline void qHilbert<SIMDSize::Serial>(
 // Four at a time
 #if defined(__SSE4_2__) || defined(_MSC_VER)
 template<>
-inline void qHilbert<SIMDSize::Size4>(
+inline void qHilbert2D<SIMDSize::Size4>(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
@@ -244,7 +244,7 @@ inline void qHilbert<SIMDSize::Size4>(
 		);
 	}
 
-	qHilbert<SIMDSize::Size4-1>(
+	qHilbert2D<SIMDSize::Size4-1>(
 		Order,
 		Distances + i * 4,
 		Positions + i * 4,
@@ -256,7 +256,7 @@ inline void qHilbert<SIMDSize::Size4>(
 // Eight at a time
 #if defined(__AVX2__) || defined(_MSC_VER)
 template<>
-inline void qHilbert<SIMDSize::Size8>(
+inline void qHilbert2D<SIMDSize::Size8>(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
@@ -353,7 +353,7 @@ inline void qHilbert<SIMDSize::Size8>(
 		);
 	}
 
-	qHilbert<SIMDSize::Size8-1>(
+	qHilbert2D<SIMDSize::Size8-1>(
 		Order,
 		Distances + i * 8,
 		Positions + i * 8,
@@ -365,7 +365,7 @@ inline void qHilbert<SIMDSize::Size8>(
 // Sixteen at a time
 #if defined(__AVX512F__) || defined(_MSC_VER)
 template<>
-inline void qHilbert<SIMDSize::Size16>(
+inline void qHilbert2D<SIMDSize::Size16>(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
@@ -505,7 +505,7 @@ inline void qHilbert<SIMDSize::Size16>(
 		);
 	}
 
-	qHilbert<SIMDSize::Size16-1>(
+	qHilbert2D<SIMDSize::Size16-1>(
 		Order,
 		Distances + i * 16,
 		Positions + i * 16,
@@ -514,14 +514,14 @@ inline void qHilbert<SIMDSize::Size16>(
 }
 #endif
 
-void qHilbert(
+void qHilbert2D(
 	std::size_t Order,
 	const std::uint32_t Distances[],
 	glm::u32vec2 Positions[],
 	std::size_t Count
 )
 {
-	qHilbert<SIMDSize::SizeMax>(
+	qHilbert2D<SIMDSize::SizeMax>(
 		Order,
 		Distances,
 		Positions,
