@@ -271,7 +271,6 @@ If you wanted to generate all the points of a `32x32` Hilbert curve, you would h
 
 Points along the hilbert curve are entirely independent, and thus can be calculated entirely in parallel using the same nonrecursive-gray-code-conditional-swap that follows the original logic.
 
-
 # Vectorization
 
 [SSE](https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions)(x86) and [NEON](https://en.wikipedia.org/wiki/ARM_architecture#Advanced_SIMD_(NEON))(ARM) vector extensions both allow for up to **4** points to be calculated in parallel with their 128-bit registers, reducing the `1024` steps from before down to only `256` iterations. See [qHilbert.hpp](include/qHilbert.hpp) for further implementation details.
@@ -413,6 +412,98 @@ void qHilbert(
 
 ![](images/AVX512.gif)
 
+
+# Parallel-prefix method (Hacker's Delight)
+
+Some time ago I had heard about and read the book [Hacker's Delight](https://www.amazon.com/Hackers-Delight-2nd-Henry-Warren/dp/0321842685) which has an entire chapter dedicated to Hilbert Curve mappings along with a very very fast implementation of `d2xy` by first decomposing the bit-by-bit state table and dependencies of the resulting `X` and `Y` coordiante and creating an equivalent logical circuit for it:
+
+![](images/circuit.gif)
+
+and from this, a method composing of both `SWAR` and `parallel-prefix` techniques is used to produce a result of  interleaved result `X` and `Y` bits in **constant** time, independent of the size and order of the Hilbert curve.
+
+The original decomposition is by `Lam, Warren M.` and `Shapiro, Jerome M.` in ["
+A class of fast algorithms for the Peano-Hilbert space-filling curve"](https://ieeexplore.ieee.org/document/413392) which was later re-written into the method below by `Steele, Guy L., Jr.`
+
+```c
+void hil_xy_from_s3(unsigned s, int n, unsigned *xp,
+                                      unsigned *yp) {
+   unsigned comp, swap, cs, t, sr;
+
+   s = s | (0x55555555 << 2*n); // Pad s on left with 01
+   sr = (s >> 1) & 0x55555555;  // (no change) groups.
+   cs = ((s & 0x55555555) + sr) // Compute complement &
+        ^ 0x55555555;           // swap info in two-bit
+                                // groups.
+   // Parallel prefix xor op to propagate both complement
+   // and swap info together from left to right (there is
+   // no step "cs ^= cs >> 1", so in effect it computes
+   // two independent parallel prefix operations on two
+   // interleaved sets of sixteen bits).
+
+   cs = cs ^ (cs >> 2);
+   cs = cs ^ (cs >> 4);
+   cs = cs ^ (cs >> 8);
+   cs = cs ^ (cs >> 16);
+   swap = cs & 0x55555555;      // Separate the swap and
+   comp = (cs >> 1) & 0x55555555;  // complement bits.
+
+   t = (s & swap) ^ comp;       // Calculate x and y in
+   s = s ^ sr ^ t ^ (t << 1);   // the odd & even bit
+                                // positions, resp.
+   s = s & ((1 << 2*n) - 1);    // Clear out any junk
+                                // on the left (unpad).
+
+   // Now "unshuffle" to separate the x and y bits.
+
+   t = (s ^ (s >> 1)) & 0x22222222; s = s ^ t ^ (t << 1);
+   t = (s ^ (s >> 2)) & 0x0C0C0C0C; s = s ^ t ^ (t << 2);
+   t = (s ^ (s >> 4)) & 0x00F000F0; s = s ^ t ^ (t << 4);
+   t = (s ^ (s >> 8)) & 0x0000FF00; s = s ^ t ^ (t << 8);
+
+   *xp = s >> 16;               // Assign the two halves
+   *yp = s & 0xFFFF;            // of t to x and y.
+}
+```
+
+I have converted all of `qHilbert` into using this method while also accelerating it with instructions such as [pext](https://www.felixcloutier.com/x86/pext) which has **dramatically** increased the performance to around **50** times faster than the other methods.
+
+```cpp
+template<>
+inline void qHilbert2D<SIMDSize::Serial>(
+	std::size_t Order,
+	const std::uint32_t Distances[],
+	glm::u32vec2 Positions[],
+	std::size_t Count
+)
+{
+	
+	for( std::size_t i = 0; i < Count; ++i )
+	{
+		std::uint32_t s = Distances[i];
+		s |= 0x55555555 << 2 * Order;
+
+		const std::uint32_t sr = (s >> 1) & 0x55555555;
+		std::uint32_t cs = ( (s & 0x55555555) + sr) ^ 0x55555555;
+
+		// 2-bit parallel prefix propagation
+		cs ^= ( cs >> 2);
+		cs ^= ( cs >> 4);
+		cs ^= ( cs >> 8);
+		cs ^= ( cs >> 16);
+
+		const std::uint32_t Swap = cs & 0x55555555;
+		const std::uint32_t Comp = (cs >> 1) & 0x55555555;
+
+		// Branchless conditional swap and complement
+		std::uint32_t t = (s & Swap) ^ Comp;
+		s = s ^ sr ^ t ^ (t << 1);
+
+		// Extract/compress odd and even bytes of X/Y coordinate
+		Positions[i].x = _pext_u32( s, 0xAAAA );
+		Positions[i].y = _pext_u32( s, 0x5555 );
+	}
+}
+```
 
 ---
 
