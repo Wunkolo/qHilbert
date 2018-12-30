@@ -7,8 +7,10 @@ qHilbert is a vectorized speedup of Hilbert curve generation using SIMD intrinsi
 ||Serial/BMI2|SSE4.2|AVX2|AVX512
 |Pattern|![Serial](images/Serial.gif)|![SSE4.2](images/SSE42.gif)|![AVX2](images/AVX2.gif)|![AVX512](images/AVX512.gif)|
 |Processor|Speedup|||||
-|[i7-7500U](https://en.wikichip.org/wiki/intel/core_i7/i7-7500u)|x30.5778|x37.4854|x39.6914|-|
+|[i7-7500u](https://en.wikichip.org/wiki/intel/core_i7/i7-7500u)|x30.5778|x37.4854|x39.6914|-|
 |[i3-6100](https://en.wikichip.org/wiki/intel/core_i3/i3-6100)|x31.0888|x32.4443|x36.2415|-|
+|[E5-2697 v4](https://en.wikichip.org/wiki/intel/xeon_e5/e5-2697_v4)|x21.3404|x24.2379|x20.546878|-|
+|[E3-1240 v5](https://en.wikichip.org/wiki/intel/xeon_e3/e3-1240_v5)|x9.7055|x11.0448|x10.792625|-|
 
 ---
 
