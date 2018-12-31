@@ -7,6 +7,7 @@ qHilbert is a vectorized speedup of Hilbert curve generation using SIMD intrinsi
 ||Serial/BMI2|SSE4.2|AVX2|AVX512
 |Pattern|![Serial](images/Serial.gif)|![SSE4.2](images/SSE42.gif)|![AVX2](images/AVX2.gif)|![AVX512](images/AVX512.gif)|
 |Processor|Speedup|||||
+|[i9-7900x](https://en.wikichip.org/wiki/intel/core_i9/i9-7900x)|x42.5303|x43.3174|x46.5958|x50.4469|
 |[i7-7500u](https://en.wikichip.org/wiki/intel/core_i7/i7-7500u)|x30.5778|x37.4854|x39.6914|-|
 |[i3-6100](https://en.wikichip.org/wiki/intel/core_i3/i3-6100)|x31.0888|x32.4443|x36.2415|-|
 |[E5-2697 v4](https://en.wikichip.org/wiki/intel/xeon_e5/e5-2697_v4)|x21.3404|x24.2379|x20.546878|-|
@@ -467,7 +468,7 @@ void hil_xy_from_s3(unsigned s, int n, unsigned *xp,
 }
 ```
 
-I have converted all of `qHilbert` into using this method while also accelerating it with instructions such as [pext](https://www.felixcloutier.com/x86/pext) which has **dramatically** increased the performance to around **45** times faster than the other methods.
+I have converted all of `qHilbert` into using this method while also accelerating it with instructions such as [pext](https://www.felixcloutier.com/x86/pext) which has **dramatically** increased the performance to around **50** times faster than the other methods.
 
 ```cpp
 template<>
